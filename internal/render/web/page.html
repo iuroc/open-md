@@ -1,0 +1,75 @@
+<!doctype html>
+<!-- Body styles: github-markdown-css (MIT), Copyright (c) Sindre Sorhus. See THIRD_PARTY_NOTICES.md. -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src file: data: https: http:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; font-src data:; base-uri 'none'; form-action 'none'">
+<title>{{.Title}} - OpenMD</title>
+<style>
+{{.CSS}}
+{{.MarkdownCSS}}
+{{.ChromaCSS}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside id="sidebar" aria-label="阅读导航">
+    <div class="sidebar-header">OpenMD</div>
+    <div class="sidebar-scroll">
+      {{if eq .Mode "dir"}}
+      <div class="sidebar-tabs" role="tablist" aria-label="侧栏视图">
+        <button type="button" class="sidebar-tab active" id="tab-button-files" data-tab="files" role="tab" aria-selected="true" aria-controls="tab-panel-files">文件列表</button>
+        <button type="button" class="sidebar-tab" id="tab-button-toc" data-tab="toc" role="tab" aria-selected="false" aria-controls="tab-panel-toc">大纲</button>
+      </div>
+      <div class="tab-panel" id="tab-panel-files" data-tab-panel="files" role="tabpanel" aria-labelledby="tab-button-files">
+        <nav id="doc-list" aria-label="文件列表">
+          {{$active := .Active}}
+          {{range $i, $doc := .Documents}}
+          <button type="button" class="doc-item{{if eq $i $active}} active{{end}}" data-doc-target="{{$doc.ID}}" title="{{$doc.RelPath}}">
+            <span class="doc-title">{{$doc.Title}}</span>
+            <span class="doc-path">{{$doc.RelPath}}</span>
+          </button>
+          {{end}}
+        </nav>
+      </div>
+      <div class="tab-panel" id="tab-panel-toc" data-tab-panel="toc" role="tabpanel" aria-labelledby="tab-button-toc" hidden>
+        <nav id="toc" aria-label="大纲"></nav>
+      </div>
+      {{else}}
+      <div class="sidebar-label">大纲</div>
+      <nav id="toc" aria-label="大纲"></nav>
+      {{end}}
+    </div>
+  </aside>
+
+  <main id="content">
+    <header class="topbar">
+      <button type="button" id="menu-toggle" aria-label="打开导航" aria-controls="sidebar">☰</button>
+      <h1 id="doc-title">{{.ActiveTitle}}</h1>
+    </header>
+
+    {{if .Warnings}}
+    <div class="warnings" role="status">
+      {{range .Warnings}}<p>{{.}}</p>{{end}}
+    </div>
+    {{end}}
+
+    <div id="doc-content">
+      {{$active := .Active}}
+      {{range $i, $doc := .Documents}}
+      <section class="doc-section markdown-body" id="{{$doc.ID}}" data-doc-id="{{$doc.ID}}" data-title="{{$doc.Title}}"{{if ne $i $active}} hidden{{end}}>
+        <template class="toc-template">
+          {{range $doc.TOC}}<a class="toc-link toc-level-{{.Level}}" href="#{{.ID}}" data-toc-id="{{.ID}}">{{.Text}}</a>{{end}}
+        </template>
+        {{$doc.HTML}}
+      </section>
+      {{end}}
+    </div>
+  </main>
+</div>
+<script>
+{{.JS}}
+</script>
+</body>
+</html>
