@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src file: data: https: http:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; font-src data:; base-uri 'none'; form-action 'none'">
 <link rel="icon" type="image/png" href="{{.Favicon}}">
-<meta name="author" content="{{.AuthorName}} ({{.AuthorID}})">
+<meta name="author" content="{{.AuthorName}}">
 <title>{{.Title}} - OpenMD</title>
 <script>
 (function () {
@@ -120,7 +120,7 @@
           <div class="settings-group settings-about">
             <div class="settings-label">关于 OpenMD</div>
             <dl class="about-meta">
-              <div><dt>作者</dt><dd class="author-line">{{.AuthorName}}<span class="author-id">· {{.AuthorID}}</span></dd></div>
+              <div><dt>作者</dt><dd class="author-line"><a href="{{.AuthorURL}}" target="_blank" rel="noopener noreferrer">{{.AuthorName}}</a></dd></div>
               <div><dt>版本</dt><dd>{{.VersionLabel}}</dd></div>
               <div><dt>构建时间</dt><dd>{{.BuildTime}}</dd></div>
             </dl>

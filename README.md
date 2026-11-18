@@ -2,7 +2,7 @@
 
 一个只读的 Windows Markdown 阅读器：把 Markdown 转成 HTML，用默认浏览器打开，用于快速阅读。
 
-作者：易舒（工号 25768）
+作者：<https://github.com/iuroc>
 
 ## 特性
 

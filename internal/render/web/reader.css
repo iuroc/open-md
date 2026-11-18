@@ -452,13 +452,6 @@ a:hover {
   font-size: 12px;
 }
 
-.author-id {
-  margin-left: 4px;
-  color: var(--fg-muted);
-  font-family: var(--font-mono);
-  font-size: 10px;
-}
-
 .file-path {
   white-space: normal;
   overflow-wrap: anywhere;

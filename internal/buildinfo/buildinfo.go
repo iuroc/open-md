@@ -9,8 +9,8 @@ var (
 
 const (
 	ReleaseURL = "https://github.com/iuroc/open-md/releases"
-	AuthorName = "易舒"
-	AuthorID   = "25768"
+	AuthorName = "github.com/iuroc"
+	AuthorURL  = "https://github.com/iuroc"
 )
 
 func IsReleaseBuild() bool {

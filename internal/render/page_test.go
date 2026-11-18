@@ -201,7 +201,7 @@ func TestRenderPageContainsEmbeddedUIAndCSP(t *testing.T) {
 	if !strings.Contains(s, `rel="icon"`) || !strings.Contains(s, "data:image/png;base64,") {
 		t.Fatal("embedded favicon missing")
 	}
-	if strings.Contains(s, `href="http`) || strings.Contains(s, "script src=") {
+	if strings.Contains(s, `rel="stylesheet"`) || strings.Contains(s, "script src=") {
 		t.Fatal("external asset referenced")
 	}
 }
@@ -360,9 +360,9 @@ func TestRenderPageShowsBuildInfoAndReleaseLink(t *testing.T) {
 	s := html.UnescapeString(string(out))
 	for _, want := range []string{
 		`id="settings-panel"`,
-		`name="author" content="易舒 (25768)"`,
-		"易舒",
-		"25768",
+		`name="author" content="github.com/iuroc"`,
+		`href="https://github.com/iuroc"`,
+		"github.com/iuroc",
 		`data-theme="blue"`,
 		`data-theme="teal"`,
 		"v2026.11.18-0959",

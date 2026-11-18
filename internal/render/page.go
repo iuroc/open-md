@@ -55,7 +55,7 @@ type pageData struct {
 	VersionLabel     string
 	BuildTime        string
 	AuthorName       string
-	AuthorID         string
+	AuthorURL        string
 	ReleaseAvailable bool
 	ReleaseURL       string
 	Favicon          template.URL
@@ -141,7 +141,7 @@ func RenderPage(page *Page) ([]byte, error) {
 		VersionLabel:     buildinfo.VersionLabel(),
 		BuildTime:        buildinfo.BuildTimeDisplay(),
 		AuthorName:       buildinfo.AuthorName,
-		AuthorID:         buildinfo.AuthorID,
+		AuthorURL:        buildinfo.AuthorURL,
 		ReleaseAvailable: buildinfo.IsReleaseBuild(),
 		ReleaseURL:       buildinfo.ReleaseURL,
 		Favicon:          template.URL("data:image/png;base64," + base64.StdEncoding.EncodeToString(faviconPNG)),
