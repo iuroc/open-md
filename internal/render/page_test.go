@@ -43,6 +43,26 @@ func TestRenderPageShowsFilePropertiesPanel(t *testing.T) {
 	}
 }
 
+func TestBuildFilePageNormalizesRelativeArgument(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "note.md"), []byte("# Title\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(dir)
+
+	page, err := BuildFilePage("note.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := filepath.Join(dir, "note.md")
+	if page.Documents[0].Path != want {
+		t.Fatalf("path = %q, want %q", page.Documents[0].Path, want)
+	}
+	if page.Documents[0].Dir != dir {
+		t.Fatalf("dir = %q, want %q", page.Documents[0].Dir, dir)
+	}
+}
+
 func TestBuildFilePageNormalizesPathAndSetsDir(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "note.md")
