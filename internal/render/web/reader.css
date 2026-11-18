@@ -488,6 +488,7 @@ a:hover {
   cursor: pointer;
   font: inherit;
   font-size: 13px;
+  line-height: 1.2;
   text-align: left;
 }
 
@@ -497,12 +498,17 @@ a:hover {
 }
 
 .settings-version {
+  display: inline-flex;
+  align-items: center;
+  height: 16px;
   overflow: hidden;
   margin-left: auto;
   color: var(--fg-muted);
   font-family: var(--font-mono);
   font-size: 10px;
+  line-height: 1;
   text-overflow: ellipsis;
+  transform: translateY(-1px);
   white-space: nowrap;
 }
 
