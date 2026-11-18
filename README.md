@@ -22,6 +22,10 @@ go test ./...
 go build -trimpath -ldflags "-s -w -H=windowsgui" -o OpenMD.exe .
 ```
 
+也可以直接双击 `build.bat`：自动运行测试、构建 `OpenMD.exe`，并生成 `source.git.bundle`。
+
+只想要源码包时，双击 `bundle.bat` 即可。
+
 产物是单个 `OpenMD.exe`。
 
 ## 安装
