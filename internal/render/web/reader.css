@@ -89,7 +89,7 @@ a:hover {
   border-bottom: 1px solid var(--border);
 }
 
-.sidebar-close {
+.sidebar-header .sidebar-close {
   display: none;
 }
 
@@ -539,7 +539,7 @@ body.full-width #doc-content {
     display: block;
   }
 
-  .sidebar-close {
+  .sidebar-header .sidebar-close {
     display: inline-flex;
   }
 
