@@ -39,7 +39,7 @@
 
 - [x] 6.1 运行完整测试和静态检查：`go test ./... -count=1`、`go vet ./...`，两者均无输出错误
 - [x] 6.2 生成一组覆盖锚点、中文标题、脚注、front matter、`100%.md`、超大文件的样例文档，用 OpenMD 打开并检查页面：锚点可跳转、脚注不串篇、front matter 不显示、特殊文件名可读、超大文件有明确提示
-- [ ] 6.3 运行 `printf '\n' | cmd.exe //c build.bat`，确认测试通过、版本号和构建时间已注入、`OpenMD.exe` 生成成功
+- [x] 6.3 运行 `printf '\n' | cmd.exe //c build.bat`，确认测试通过、版本号和构建时间已注入、`OpenMD.exe` 生成成功
 
 ## Workflow follow-up
 
