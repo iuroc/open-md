@@ -208,6 +208,7 @@ func TestRenderPageShowsBuildInfoAndReleaseLink(t *testing.T) {
 	}
 	s := html.UnescapeString(string(out))
 	for _, want := range []string{
+		">关于<",
 		"v2026.11.18-0959",
 		"2026-11-18 09:59:12 +08:00",
 		"https://t.2980.com/510Qkm",

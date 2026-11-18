@@ -94,9 +94,8 @@
             <path d="M13.5 7l3 3-3 3"></path>
           </svg>
         </button>
-        <button type="button" id="version-button" class="version-chip" aria-haspopup="dialog" aria-expanded="false" aria-controls="about-panel" title="版本 {{.VersionLabel}} · 构建于 {{.BuildTime}}">
-          <span class="version-dot" aria-hidden="true"></span>
-          <span class="version-label">{{.VersionLabel}}</span>
+        <button type="button" id="version-button" class="version-chip" aria-haspopup="dialog" aria-expanded="false" aria-controls="about-panel" aria-label="关于 OpenMD，查看版本与更新" title="关于 OpenMD · {{.VersionLabel}} · 构建于 {{.BuildTime}}">
+          <span class="version-label">关于</span>
         </button>
         <div id="about-panel" class="about-panel" role="dialog" aria-label="版本信息" hidden>
           <div class="about-heading">OpenMD</div>

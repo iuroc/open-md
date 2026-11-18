@@ -346,8 +346,8 @@ a:hover {
   background: var(--bg-subtle);
   color: var(--fg-muted);
   cursor: pointer;
-  font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: 600;
   line-height: 1.2;
 }
 
@@ -359,14 +359,6 @@ a:hover {
 .version-chip[aria-expanded="true"] {
   border-color: var(--accent);
   color: var(--accent);
-}
-
-.version-dot {
-  flex: 0 0 auto;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent);
 }
 
 .version-label {
@@ -565,8 +557,8 @@ body.full-width #doc-content {
   }
 
   .version-chip {
-    max-width: 130px;
-    padding: 5px 7px;
+    max-width: 90px;
+    padding: 5px 9px;
   }
 
   .about-panel {
