@@ -11,6 +11,44 @@ import (
 	"openmd/internal/buildinfo"
 )
 
+func TestReadFileLimitedRejectsOverLimit(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "note.md")
+	if err := os.WriteFile(path, []byte("1234567890"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := readFileLimited(path, 4); err == nil {
+		t.Fatal("over-limit read succeeded")
+	}
+	got, err := readFileLimited(path, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "1234567890" {
+		t.Fatalf("data = %q", got)
+	}
+}
+
+func TestBuildFilePageRejectsOversizedFile(t *testing.T) {
+	oldLimit := maxSingleFileBytes
+	maxSingleFileBytes = 4
+	defer func() { maxSingleFileBytes = oldLimit }()
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "big.md")
+	if err := os.WriteFile(path, []byte("# 1234567890\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	_, err := BuildFilePage(path)
+	if err == nil {
+		t.Fatal("oversized file was accepted")
+	}
+	if !strings.Contains(err.Error(), "big.md") || !strings.Contains(err.Error(), "上限") {
+		t.Fatalf("error does not identify the file and limit: %v", err)
+	}
+}
+
 func TestBuildFilePage(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "note.md")

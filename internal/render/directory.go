@@ -2,7 +2,6 @@ package render
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"openmd/internal/scan"
@@ -28,7 +27,7 @@ func BuildDirPage(dirPath string) (*Page, error) {
 func buildDirPage(docs []scan.Document) (*Page, error) {
 	initial := make([]sourceDoc, 0, len(docs))
 	for _, doc := range docs {
-		source, err := os.ReadFile(doc.Path)
+		source, err := readFileLimited(doc.Path, scan.DefaultLimits.MaxTotalBytes)
 		initial = append(initial, sourceDoc{
 			Path:    doc.Path,
 			RelPath: doc.Name,

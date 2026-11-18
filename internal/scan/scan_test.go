@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -73,6 +74,49 @@ func TestDirectoryLimits(t *testing.T) {
 	}
 }
 
+func TestDirectorySkipsOversizedFileBeforeSmall(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "a-large.md"), make([]byte, 20), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "b-small.md"), []byte("12345"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	got, err := Directory(dir, Limits{MaxDocs: 10, MaxTotalBytes: 100, MaxFileBytes: 10})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Documents) != 1 || got.Documents[0].Name != "b-small.md" {
+		t.Fatalf("docs = %#v", got.Documents)
+	}
+	if len(got.Skipped) != 1 || got.Skipped[0].Name != "a-large.md" {
+		t.Fatalf("skipped = %#v", got.Skipped)
+	}
+	if len(got.Warnings) == 0 || !strings.Contains(got.Warnings[0], "a-large.md") {
+		t.Fatalf("warnings = %#v", got.Warnings)
+	}
+}
+
+func TestDirectorySkipsOversizedFileAfterSmall(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "a-small.md"), []byte("12345"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "b-large.md"), make([]byte, 20), 0644); err != nil {
+		t.Fatal(err)
+	}
+	got, err := Directory(dir, Limits{MaxDocs: 10, MaxTotalBytes: 100, MaxFileBytes: 10})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Documents) != 1 || got.Documents[0].Name != "a-small.md" {
+		t.Fatalf("docs = %#v", got.Documents)
+	}
+	if len(got.Skipped) != 1 || got.Skipped[0].Name != "b-large.md" {
+		t.Fatalf("skipped = %#v", got.Skipped)
+	}
+}
+
 func TestDirectoryTotalBytesLimit(t *testing.T) {
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "a.md"), []byte("12345"), 0644); err != nil {
@@ -87,6 +131,22 @@ func TestDirectoryTotalBytesLimit(t *testing.T) {
 	}
 	if len(got.Documents) != 1 || !got.Truncated {
 		t.Fatalf("docs=%d truncated=%v", len(got.Documents), got.Truncated)
+	}
+}
+
+func TestDirectoryAllOversized(t *testing.T) {
+	dir := t.TempDir()
+	for _, name := range []string{"a.md", "b.md"} {
+		if err := os.WriteFile(filepath.Join(dir, name), make([]byte, 20), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	_, err := Directory(dir, Limits{MaxDocs: 10, MaxTotalBytes: 100, MaxFileBytes: 10})
+	if !errors.Is(err, ErrNoLoadableMarkdown) {
+		t.Fatalf("err = %v, want ErrNoLoadableMarkdown", err)
+	}
+	if !strings.Contains(err.Error(), "大小限制") {
+		t.Fatalf("error is not understandable: %v", err)
 	}
 }
 

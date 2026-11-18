@@ -12,9 +12,10 @@ import (
 type Limits struct {
 	MaxDocs       int
 	MaxTotalBytes int64
+	MaxFileBytes  int64
 }
 
-var DefaultLimits = Limits{MaxDocs: 500, MaxTotalBytes: 25 << 20}
+var DefaultLimits = Limits{MaxDocs: 500, MaxTotalBytes: 25 << 20, MaxFileBytes: 32 << 20}
 
 type Document struct {
 	Path string
@@ -22,13 +23,23 @@ type Document struct {
 	Size int64
 }
 
+type SkippedDocument struct {
+	Path string
+	Name string
+	Size int64
+}
+
 type Result struct {
 	Documents []Document
+	Skipped   []SkippedDocument
 	Warnings  []string
 	Truncated bool
 }
 
-var ErrNoMarkdown = errors.New("目录中没有 Markdown 文件")
+var (
+	ErrNoMarkdown         = errors.New("目录中没有 Markdown 文件")
+	ErrNoLoadableMarkdown = errors.New("目录中的 Markdown 文件均超过大小限制，无法加载")
+)
 
 func Directory(dir string, limits Limits) (*Result, error) {
 	abs, err := filepath.Abs(dir)
@@ -40,6 +51,13 @@ func Directory(dir string, limits Limits) (*Result, error) {
 	}
 	if limits.MaxTotalBytes <= 0 {
 		limits.MaxTotalBytes = DefaultLimits.MaxTotalBytes
+	}
+	if limits.MaxFileBytes <= 0 {
+		limits.MaxFileBytes = DefaultLimits.MaxFileBytes
+	}
+	perFileBudget := limits.MaxFileBytes
+	if perFileBudget > limits.MaxTotalBytes {
+		perFileBudget = limits.MaxTotalBytes
 	}
 
 	entries, err := os.ReadDir(abs)
@@ -62,7 +80,22 @@ func Directory(dir string, limits Limits) (*Result, error) {
 			result.Warnings = append(result.Warnings, "无法读取文件信息："+entry.Name())
 			continue
 		}
-		if len(result.Documents) >= limits.MaxDocs || total+info.Size() > limits.MaxTotalBytes {
+		if len(result.Documents) >= limits.MaxDocs {
+			result.Truncated = true
+			break
+		}
+		if info.Size() > perFileBudget {
+			result.Skipped = append(result.Skipped, SkippedDocument{
+				Path: filepath.Join(abs, entry.Name()),
+				Name: entry.Name(),
+				Size: info.Size(),
+			})
+			result.Warnings = append(result.Warnings, fmt.Sprintf(
+				"文件过大，已跳过：%s（%s）", entry.Name(), formatSize(info.Size()),
+			))
+			continue
+		}
+		if total+info.Size() > limits.MaxTotalBytes {
 			result.Truncated = true
 			break
 		}
@@ -75,6 +108,9 @@ func Directory(dir string, limits Limits) (*Result, error) {
 	}
 
 	if len(result.Documents) == 0 {
+		if len(result.Skipped) > 0 {
+			return nil, ErrNoLoadableMarkdown
+		}
 		return nil, ErrNoMarkdown
 	}
 	sort.SliceStable(result.Documents, func(i, j int) bool {
@@ -116,4 +152,14 @@ func naturalLess(a, b string) bool {
 
 func isDigit(c byte) bool {
 	return c >= '0' && c <= '9'
+}
+
+func formatSize(size int64) string {
+	if size >= 1<<20 {
+		return fmt.Sprintf("%.1f MB", float64(size)/(1<<20))
+	}
+	if size >= 1<<10 {
+		return fmt.Sprintf("%.1f KB", float64(size)/(1<<10))
+	}
+	return fmt.Sprintf("%d B", size)
 }

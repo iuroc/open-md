@@ -4,7 +4,6 @@ import (
 	"fmt"
 	stdhtml "html"
 	"html/template"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -51,8 +50,9 @@ func buildPageFromSources(mode, title string, initial []sourceDoc) (*Page, error
 			continue
 		}
 		doc, err := RenderMarkdown(sourceDoc.Source, sourceDoc.Path, RenderOptions{
-			IDPrefix:  id,
-			KnownDocs: knownDocs,
+			IDPrefix:     id,
+			CurrentDocID: id,
+			KnownDocs:    knownDocs,
 		})
 		if err != nil {
 			docs = append(docs, errorDocumentForSource(sourceDoc, id))
@@ -78,7 +78,7 @@ func collectLinkedMDSources(initial []sourceDoc) []sourceDoc {
 		known[pathKey(doc.Path)] = true
 	}
 
-	md := newMarkdown()
+	md := newMarkdown("")
 	seen := make(map[string]bool)
 	candidates := make([]linkedCandidate, 0)
 	for _, doc := range initial {
@@ -132,7 +132,7 @@ func collectLinkedMDSources(initial []sourceDoc) []sourceDoc {
 		if total+info.Size() > maxLinkedTotal {
 			break
 		}
-		source, err := os.ReadFile(candidate.path)
+		source, err := readFileLimited(candidate.path, maxLinkedFileBytes)
 		if err != nil {
 			continue
 		}
@@ -152,52 +152,18 @@ func resolveLinkedMarkdown(raw, baseDir string) (absPath, display string, ok boo
 		return "", "", false
 	}
 
-	if filepath.IsAbs(raw) {
-		absPath = filepath.Clean(raw)
-		if !isMarkdownPath(absPath) || isNetworkPath(absPath) {
-			return "", "", false
-		}
-		return absPath, absPath, true
-	}
-
-	parsed, err := url.Parse(raw)
-	if err != nil {
+	target, ok := resolveLocalDestination(raw, baseDir)
+	if !ok {
 		return "", "", false
 	}
-	switch strings.ToLower(parsed.Scheme) {
-	case "":
-		if parsed.Host != "" || parsed.Path == "" {
-			return "", "", false
-		}
-		local := filepath.FromSlash(parsed.Path)
-		if !filepath.IsAbs(local) {
-			local = filepath.Join(baseDir, local)
-		}
-		absPath, err = filepath.Abs(local)
-		if err != nil || !isMarkdownPath(absPath) || isNetworkPath(absPath) {
-			return "", "", false
-		}
-		display = filepath.ToSlash(filepath.Clean(filepath.FromSlash(parsed.Path)))
-		if display == "." {
-			display = absPath
-		}
-		return absPath, display, true
-	case "file":
-		if parsed.Host != "" {
-			return "", "", false
-		}
-		local := filepath.FromSlash(parsed.Path)
-		if len(local) >= 3 && local[0] == '\\' && local[2] == ':' {
-			local = local[1:]
-		}
-		absPath, err = filepath.Abs(local)
-		if err != nil || !isMarkdownPath(absPath) || isNetworkPath(absPath) {
-			return "", "", false
-		}
-		return absPath, absPath, true
-	default:
+	if !isMarkdownPath(target.Path) || isNetworkPath(target.Path) {
 		return "", "", false
 	}
+	display = target.Display
+	if display == "" {
+		display = target.Path
+	}
+	return target.Path, display, true
 }
 
 func isMarkdownPath(path string) bool {

@@ -13,7 +13,7 @@ const (
 	ImageURL
 )
 
-func RewriteURL(raw, baseDir string, kind URLKind, knownDocs map[string]string) (string, error) {
+func RewriteURL(raw, baseDir string, kind URLKind, knownDocs map[string]string, currentDocID string) (string, error) {
 	if raw == "" {
 		return "", nil
 	}
@@ -23,27 +23,29 @@ func RewriteURL(raw, baseDir string, kind URLKind, knownDocs map[string]string) 
 		return "", nil
 	}
 	if strings.HasPrefix(raw, "#") {
+		if currentDocID != "" {
+			return docHash(currentDocID, decodeFragment(strings.TrimPrefix(raw, "#"))), nil
+		}
 		return raw, nil
 	}
 
 	if filepath.IsAbs(raw) {
-		abs := filepath.Clean(raw)
-		if kind == LinkURL {
-			if id, ok := lookupKnown(abs, knownDocs); ok {
-				return docHash(id, ""), nil
-			}
-		}
-		return fileURL(abs, "", "")
+		return rewriteLocalTarget(localTarget{Path: filepath.Clean(raw)}, kind, knownDocs)
 	}
 
-	parsed, err := url.Parse(raw)
-	if err != nil {
-		return raw, err
-	}
-	if parsed.Scheme != "" {
+	if parsed, err := url.Parse(raw); err == nil {
 		switch strings.ToLower(parsed.Scheme) {
-		case "http", "https", "file":
+		case "":
+			if parsed.Host != "" || parsed.Path == "" {
+				return raw, nil
+			}
+		case "http", "https":
 			return raw, nil
+		case "file":
+			// UNC and other host-bearing file URLs stay as-is: never stat them.
+			if parsed.Host != "" {
+				return raw, nil
+			}
 		case "mailto", "tel":
 			if kind == LinkURL {
 				return raw, nil
@@ -58,24 +60,21 @@ func RewriteURL(raw, baseDir string, kind URLKind, knownDocs map[string]string) 
 			return "", nil
 		}
 	}
-	if parsed.Host != "" || parsed.Path == "" {
-		return raw, nil
-	}
 
-	localPath := filepath.FromSlash(parsed.Path)
-	if !filepath.IsAbs(localPath) {
-		localPath = filepath.Join(baseDir, localPath)
+	target, ok := resolveLocalDestination(raw, baseDir)
+	if !ok {
+		return "", nil
 	}
-	abs, err := filepath.Abs(localPath)
-	if err != nil {
-		return raw, err
-	}
+	return rewriteLocalTarget(target, kind, knownDocs)
+}
+
+func rewriteLocalTarget(target localTarget, kind URLKind, knownDocs map[string]string) (string, error) {
 	if kind == LinkURL {
-		if id, ok := lookupKnown(abs, knownDocs); ok {
-			return docHash(id, parsed.Fragment), nil
+		if id, ok := lookupKnown(target.Path, knownDocs); ok {
+			return docHash(id, target.Fragment), nil
 		}
 	}
-	return fileURL(abs, parsed.RawQuery, parsed.Fragment)
+	return fileURL(target.Path, target.RawQuery, target.Fragment)
 }
 
 func lookupKnown(abs string, knownDocs map[string]string) (string, bool) {
@@ -92,6 +91,14 @@ func docHash(id, fragment string) string {
 		hash += "&anchor=" + url.QueryEscape(fragment)
 	}
 	return hash
+}
+
+func decodeFragment(fragment string) string {
+	decoded, err := url.PathUnescape(fragment)
+	if err != nil {
+		return fragment
+	}
+	return decoded
 }
 
 func fileURL(abs, rawQuery, fragment string) (string, error) {

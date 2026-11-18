@@ -63,8 +63,23 @@ type pageData struct {
 	JS               template.JS
 }
 
+var maxSingleFileBytes int64 = 32 << 20
+
 func BuildFilePage(filePath string) (*Page, error) {
-	source, err := os.ReadFile(filePath)
+	info, err := os.Stat(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("无法读取 Markdown 文件: %w", err)
+	}
+	if info.IsDir() {
+		return nil, fmt.Errorf("无法读取 Markdown 文件: %s 是目录", filepath.Base(filePath))
+	}
+	if maxSingleFileBytes > 0 && info.Size() > maxSingleFileBytes {
+		return nil, fmt.Errorf(
+			"Markdown 文件过大：%s（%d 字节），上限 %d 字节",
+			filepath.Base(filePath), info.Size(), maxSingleFileBytes,
+		)
+	}
+	source, err := readFileLimited(filePath, maxSingleFileBytes)
 	if err != nil {
 		return nil, fmt.Errorf("无法读取 Markdown 文件: %w", err)
 	}
