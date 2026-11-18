@@ -14,6 +14,11 @@
   var settingsButton = document.getElementById("settings-button");
   var settingsPanel = document.getElementById("settings-panel");
   var settingsClose = document.getElementById("settings-close");
+  var filePathEl = document.getElementById("file-path");
+  var fileDirEl = document.getElementById("file-dir");
+  var copyPathButton = document.getElementById("copy-path");
+  var copyStatusEl = document.getElementById("copy-status");
+  var currentPath = "";
   var themeButtons = Array.prototype.slice.call(document.querySelectorAll(".theme-option"));
   var validThemes = ["blue", "teal", "violet", "graphite"];
   var themeQuery = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
@@ -105,6 +110,49 @@
     if (persist) {
       writePref("openmd-theme", theme);
     }
+  }
+
+  function setCopyStatus(text) {
+    if (copyStatusEl) {
+      copyStatusEl.textContent = text;
+    }
+  }
+
+  function fallbackCopy(text) {
+    var area = document.createElement("textarea");
+    area.value = text;
+    area.setAttribute("readonly", "");
+    area.style.position = "fixed";
+    area.style.opacity = "0";
+    document.body.appendChild(area);
+    area.select();
+    var ok = false;
+    try {
+      ok = document.execCommand("copy");
+    } catch (err) {
+      ok = false;
+    }
+    document.body.removeChild(area);
+    return ok;
+  }
+
+  function copyCurrentPath() {
+    if (!currentPath) {
+      setCopyStatus("没有可复制的路径");
+      return;
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(currentPath).then(
+        function () {
+          setCopyStatus("已复制");
+        },
+        function () {
+          setCopyStatus(fallbackCopy(currentPath) ? "已复制" : "复制失败");
+        }
+      );
+      return;
+    }
+    setCopyStatus(fallbackCopy(currentPath) ? "已复制" : "复制失败");
   }
 
   function closeMobileSidebar() {
@@ -243,6 +291,15 @@
     }
     document.title = docTitle + " - OpenMD";
 
+    currentPath = section.getAttribute("data-path") || "";
+    if (filePathEl) {
+      filePathEl.textContent = currentPath;
+    }
+    if (fileDirEl) {
+      fileDirEl.textContent = section.getAttribute("data-dir") || "";
+    }
+    setCopyStatus("");
+
     replaceTOC(section);
     applyChromaTheme();
 
@@ -343,6 +400,10 @@
     settingsClose.addEventListener("click", function () {
       setSettingsOpen(false);
     });
+  }
+
+  if (copyPathButton) {
+    copyPathButton.addEventListener("click", copyCurrentPath);
   }
 
   for (var th = 0; th < themeButtons.length; th++) {
