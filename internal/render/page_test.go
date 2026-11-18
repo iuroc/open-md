@@ -11,6 +11,38 @@ import (
 	"openmd/internal/buildinfo"
 )
 
+func TestRenderPageShowsFilePropertiesPanel(t *testing.T) {
+	page := &Page{
+		Mode:  "file",
+		Title: "A",
+		Documents: []Document{{
+			ID:    "doc-0",
+			Title: "A",
+			Path:  `C:\docs\a.md`,
+			Dir:   `C:\docs`,
+		}},
+	}
+	out, err := RenderPage(page)
+	if err != nil {
+		t.Fatal(err)
+	}
+	html := string(out)
+	for _, want := range []string{
+		`id="file-path"`,
+		`id="file-dir"`,
+		`id="copy-path"`,
+		`id="copy-status"`,
+		`信息与设置`,
+		`aria-label="信息与设置"`,
+		`C:\docs\a.md`,
+		`C:\docs`,
+	} {
+		if !strings.Contains(html, want) {
+			t.Fatalf("missing %q in panel: %s", want, html)
+		}
+	}
+}
+
 func TestBuildFilePageNormalizesPathAndSetsDir(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "note.md")
