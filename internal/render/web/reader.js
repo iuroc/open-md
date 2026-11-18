@@ -9,10 +9,13 @@
   var titleEl = document.getElementById("doc-title");
   var menuButton = document.getElementById("menu-toggle");
   var widthButton = document.getElementById("width-toggle");
-  var versionButton = document.getElementById("version-button");
-  var aboutPanel = document.getElementById("about-panel");
   var sidebarBackdrop = document.getElementById("sidebar-backdrop");
   var sidebarClose = document.getElementById("sidebar-close");
+  var settingsButton = document.getElementById("settings-button");
+  var settingsPanel = document.getElementById("settings-panel");
+  var settingsClose = document.getElementById("settings-close");
+  var themeButtons = Array.prototype.slice.call(document.querySelectorAll(".theme-option"));
+  var validThemes = ["blue", "teal", "violet", "graphite"];
   var themeQuery = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
   var mobileQuery = window.matchMedia ? window.matchMedia("(max-width: 900px)") : null;
   var activeHeadings = [];
@@ -75,16 +78,38 @@
     widthButton.title = label;
   }
 
-  function setAboutOpen(open) {
-    if (!aboutPanel || !versionButton) {
+  function setSettingsOpen(open) {
+    if (!settingsPanel || !settingsButton) {
       return;
     }
-    aboutPanel.hidden = !open;
-    versionButton.setAttribute("aria-expanded", open ? "true" : "false");
+    settingsPanel.hidden = !open;
+    settingsButton.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+
+  function currentTheme() {
+    var theme = document.documentElement.getAttribute("data-theme");
+    return validThemes.indexOf(theme) >= 0 ? theme : "blue";
+  }
+
+  function applyTheme(theme, persist) {
+    if (validThemes.indexOf(theme) < 0) {
+      theme = "blue";
+    }
+    document.documentElement.setAttribute("data-theme", theme);
+    for (var i = 0; i < themeButtons.length; i++) {
+      themeButtons[i].setAttribute(
+        "aria-pressed",
+        themeButtons[i].getAttribute("data-theme") === theme ? "true" : "false"
+      );
+    }
+    if (persist) {
+      writePref("openmd-theme", theme);
+    }
   }
 
   function closeMobileSidebar() {
     document.body.classList.remove("sidebar-open");
+    setSettingsOpen(false);
     syncMenuButton();
   }
 
@@ -286,6 +311,9 @@
         );
       }
       syncMenuButton();
+      if (!sidebarVisible()) {
+        setSettingsOpen(false);
+      }
     });
   }
 
@@ -308,36 +336,48 @@
     });
   }
 
-  if (versionButton) {
-    versionButton.addEventListener("click", function (event) {
+  if (settingsButton) {
+    settingsButton.addEventListener("click", function (event) {
       event.stopPropagation();
-      setAboutOpen(aboutPanel ? aboutPanel.hidden : false);
+      setSettingsOpen(settingsPanel ? settingsPanel.hidden : false);
     });
   }
 
-  if (aboutPanel) {
-    aboutPanel.addEventListener("click", function (event) {
+  if (settingsClose) {
+    settingsClose.addEventListener("click", function () {
+      setSettingsOpen(false);
+    });
+  }
+
+  for (var th = 0; th < themeButtons.length; th++) {
+    themeButtons[th].addEventListener("click", function () {
+      applyTheme(this.getAttribute("data-theme"), true);
+    });
+  }
+
+  if (settingsPanel) {
+    settingsPanel.addEventListener("click", function (event) {
       var target = event.target;
       if (target && target.closest && target.closest("a")) {
-        setAboutOpen(false);
+        setSettingsOpen(false);
       }
     });
   }
 
   document.addEventListener("click", function (event) {
-    if (!aboutPanel || aboutPanel.hidden) {
+    if (!settingsPanel || settingsPanel.hidden) {
       return;
     }
     var target = event.target;
-    if (aboutPanel.contains(target) || (versionButton && versionButton.contains(target))) {
+    if (settingsPanel.contains(target) || (settingsButton && settingsButton.contains(target))) {
       return;
     }
-    setAboutOpen(false);
+    setSettingsOpen(false);
   });
 
   document.addEventListener("keydown", function (event) {
     if (event.key === "Escape") {
-      setAboutOpen(false);
+      setSettingsOpen(false);
       closeMobileSidebar();
     }
   });
@@ -370,7 +410,10 @@
   }
   syncWidthButton();
   syncMenuButton();
-  setAboutOpen(false);
+  setSettingsOpen(false);
+
+  var storedTheme = readPref("openmd-theme");
+  applyTheme(validThemes.indexOf(storedTheme) >= 0 ? storedTheme : currentTheme(), false);
 
   initialDoc();
   applyChromaTheme();

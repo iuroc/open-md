@@ -27,9 +27,8 @@ type iconImage struct {
 }
 
 var (
-	teal     = color.NRGBA{R: 15, G: 118, B: 110, A: 255}
-	tealDark = color.NRGBA{R: 11, G: 93, B: 86, A: 255}
-	paper    = color.NRGBA{R: 255, G: 255, B: 255, A: 255}
+	teal  = color.NRGBA{R: 15, G: 118, B: 110, A: 255}
+	paper = color.NRGBA{R: 255, G: 255, B: 255, A: 255}
 )
 
 func main() {
@@ -50,6 +49,18 @@ func main() {
 				log.Fatal(err)
 			}
 		}
+		if size == 64 {
+			var buf bytes.Buffer
+			if err := png.Encode(&buf, img); err != nil {
+				log.Fatal(err)
+			}
+			if err := os.MkdirAll(filepath.Join("internal", "render", "web"), 0755); err != nil {
+				log.Fatal(err)
+			}
+			if err := os.WriteFile(filepath.Join("internal", "render", "web", "favicon.png"), buf.Bytes(), 0644); err != nil {
+				log.Fatal(err)
+			}
+		}
 	}
 
 	if err := os.MkdirAll("assets", 0755); err != nil {
@@ -65,32 +76,26 @@ func render(size int) *image.NRGBA {
 	scale := float64(dim) / iconBase
 	img := image.NewRGBA(image.Rect(0, 0, dim, dim))
 
+	const border = 14.0
 	fillRoundRect(img, 4*scale, 4*scale, 252*scale, 252*scale, 52*scale, teal)
-
-	if size <= 32 {
-		// At 16–32 px the paper sheet turns into mush, so use the mark alone.
-		m := []point{
-			{78 * scale, 176 * scale},
-			{78 * scale, 80 * scale},
-			{128 * scale, 132 * scale},
-			{178 * scale, 80 * scale},
-			{178 * scale, 176 * scale},
-		}
-		strokePolyline(img, m, 30*scale, paper)
-		return downsample(img, size)
-	}
-
-	fillRoundRect(img, 68*scale, 54*scale, 204*scale, 226*scale, 18*scale, tealDark)
-	fillRoundRect(img, 60*scale, 42*scale, 196*scale, 214*scale, 18*scale, paper)
+	fillRoundRect(
+		img,
+		(4+border)*scale,
+		(4+border)*scale,
+		(252-border)*scale,
+		(252-border)*scale,
+		(52-border)*scale,
+		paper,
+	)
 
 	m := []point{
-		{88 * scale, 164 * scale},
-		{88 * scale, 100 * scale},
-		{128 * scale, 142 * scale},
-		{168 * scale, 100 * scale},
-		{168 * scale, 164 * scale},
+		{78 * scale, 176 * scale},
+		{78 * scale, 80 * scale},
+		{128 * scale, 132 * scale},
+		{178 * scale, 80 * scale},
+		{178 * scale, 176 * scale},
 	}
-	strokePolyline(img, m, 18*scale, teal)
+	strokePolyline(img, m, 30*scale, teal)
 
 	return downsample(img, size)
 }

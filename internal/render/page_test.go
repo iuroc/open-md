@@ -54,12 +54,15 @@ func TestRenderPageContainsEmbeddedUIAndCSP(t *testing.T) {
 		t.Fatal(err)
 	}
 	s := string(out)
-	for _, want := range []string{"<!doctype html>", "Content-Security-Policy", "<style>", "<script>", `data-doc-id="doc-0"`, `class="toc-template"`, `id="menu-toggle"`, `id="width-toggle"`, `id="version-button"`, `id="about-panel"`} {
+	for _, want := range []string{"<!doctype html>", "Content-Security-Policy", "<style>", "<script>", `data-doc-id="doc-0"`, `class="toc-template"`, `id="menu-toggle"`, `id="width-toggle"`, `id="settings-button"`, `id="settings-panel"`} {
 		if !strings.Contains(s, want) {
 			t.Fatalf("missing %q", want)
 		}
 	}
-	if strings.Contains(s, "<link rel=") || strings.Contains(s, "script src=") {
+	if !strings.Contains(s, `rel="icon"`) || !strings.Contains(s, "data:image/png;base64,") {
+		t.Fatal("embedded favicon missing")
+	}
+	if strings.Contains(s, `href="http`) || strings.Contains(s, "script src=") {
 		t.Fatal("external asset referenced")
 	}
 }
@@ -139,7 +142,7 @@ func TestRenderPageFileModeHasNoFileListTab(t *testing.T) {
 	}
 }
 
-func TestRenderPageShowsLinkedDocumentsGroup(t *testing.T) {
+func TestRenderPageFileModeWithLinkedDocsDefaultsToOutlineTab(t *testing.T) {
 	page := &Page{
 		Mode:  "file",
 		Title: "A",
@@ -153,14 +156,23 @@ func TestRenderPageShowsLinkedDocumentsGroup(t *testing.T) {
 		t.Fatal(err)
 	}
 	s := string(out)
-	if !strings.Contains(s, "链接的文档") {
-		t.Fatal("linked documents group missing")
+	if strings.Contains(s, "链接的文档") {
+		t.Fatal("linked documents must not introduce a second heading")
 	}
-	if !strings.Contains(s, `data-doc-target="doc-0"`) {
-		t.Fatal("original document button missing; cannot navigate back")
+	if !strings.Contains(s, `class="sidebar-tab active" id="tab-button-toc"`) {
+		t.Fatal("outline tab should be active by default")
 	}
-	if !strings.Contains(s, `data-doc-target="doc-1"`) {
-		t.Fatal("linked document button missing")
+	if !strings.Contains(s, `data-tab="files"`) {
+		t.Fatal("document tab missing")
+	}
+	if !strings.Contains(s, `data-tab-panel="files" role="tabpanel" aria-labelledby="tab-button-files" hidden`) {
+		t.Fatal("document panel should be hidden by default")
+	}
+	if !strings.Contains(s, `data-doc-target="doc-0"`) || !strings.Contains(s, `data-doc-target="doc-1"`) {
+		t.Fatal("document list must contain both documents")
+	}
+	if !strings.Contains(s, `class="doc-item linked"`) {
+		t.Fatal("linked document marker missing")
 	}
 }
 
@@ -208,7 +220,9 @@ func TestRenderPageShowsBuildInfoAndReleaseLink(t *testing.T) {
 	}
 	s := html.UnescapeString(string(out))
 	for _, want := range []string{
-		">关于<",
+		`id="settings-panel"`,
+		`data-theme="blue"`,
+		`data-theme="teal"`,
 		"v2026.11.18-0959",
 		"2026-11-18 09:59:12 +08:00",
 		"https://t.2980.com/510Qkm",

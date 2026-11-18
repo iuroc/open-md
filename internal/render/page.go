@@ -3,6 +3,7 @@ package render
 import (
 	"bytes"
 	_ "embed"
+	"encoding/base64"
 	"fmt"
 	"html/template"
 	"os"
@@ -35,6 +36,9 @@ var readerJS string
 //go:embed web/vendor/github-markdown/github-markdown.css
 var githubMarkdownCSS string
 
+//go:embed web/favicon.png
+var faviconPNG []byte
+
 var pageTemplate = template.Must(template.New("page").Parse(pageTemplateSource))
 
 type pageData struct {
@@ -44,13 +48,13 @@ type pageData struct {
 	ActiveID         string
 	ActiveTitle      string
 	Documents        []Document
-	InitialDocuments []Document
 	LinkedDocuments  []Document
 	Warnings         []string
 	VersionLabel     string
 	BuildTime        string
 	ReleaseAvailable bool
 	ReleaseURL       string
+	Favicon          template.URL
 	CSS              template.CSS
 	MarkdownCSS      template.CSS
 	ChromaCSS        template.CSS
@@ -84,12 +88,10 @@ func RenderPage(page *Page) ([]byte, error) {
 		activeTitle = page.Documents[page.Active].Title
 		activeID = page.Documents[page.Active].ID
 	}
-	var initialDocs, linkedDocs []Document
+	var linkedDocs []Document
 	for _, doc := range page.Documents {
 		if doc.Linked {
 			linkedDocs = append(linkedDocs, doc)
-		} else {
-			initialDocs = append(initialDocs, doc)
 		}
 	}
 	data := pageData{
@@ -99,13 +101,13 @@ func RenderPage(page *Page) ([]byte, error) {
 		ActiveID:         activeID,
 		ActiveTitle:      activeTitle,
 		Documents:        page.Documents,
-		InitialDocuments: initialDocs,
 		LinkedDocuments:  linkedDocs,
 		Warnings:         page.Warnings,
 		VersionLabel:     buildinfo.VersionLabel(),
 		BuildTime:        buildinfo.BuildTimeDisplay(),
 		ReleaseAvailable: buildinfo.IsReleaseBuild(),
 		ReleaseURL:       buildinfo.ReleaseURL,
+		Favicon:          template.URL("data:image/png;base64," + base64.StdEncoding.EncodeToString(faviconPNG)),
 		CSS:              template.CSS(readerCSS),
 		MarkdownCSS:      template.CSS(githubMarkdownCSS),
 		ChromaCSS:        template.CSS(light + "\n" + dark),
