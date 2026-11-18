@@ -26,6 +26,7 @@ type Heading struct {
 
 type Document struct {
 	Path    string
+	Dir     string
 	RelPath string
 	ID      string
 	Title   string

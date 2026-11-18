@@ -135,7 +135,7 @@
     <div id="doc-content">
       {{$active := .Active}}
       {{range $i, $doc := .Documents}}
-      <section class="doc-section markdown-body" id="{{$doc.ID}}" data-doc-id="{{$doc.ID}}" data-title="{{$doc.Title}}"{{if ne $i $active}} hidden{{end}}>
+      <section class="doc-section markdown-body" id="{{$doc.ID}}" data-doc-id="{{$doc.ID}}" data-title="{{$doc.Title}}" data-path="{{$doc.Path}}" data-dir="{{$doc.Dir}}"{{if ne $i $active}} hidden{{end}}>
         <template class="toc-template">
           {{range $doc.TOC}}<a class="toc-link toc-level-{{.Level}}" href="#{{.ID}}" data-toc-id="{{.ID}}">{{.Text}}</a>{{end}}
         </template>

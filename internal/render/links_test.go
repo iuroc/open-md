@@ -42,6 +42,24 @@ func TestBuildFilePagePreRendersLinkedLocalDocument(t *testing.T) {
 	}
 }
 
+func TestBuildFilePageLinkedDocumentHasDir(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "other.md"), []byte("# Other\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	main := filepath.Join(dir, "main.md")
+	if err := os.WriteFile(main, []byte("[Other](other.md)\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	page, err := BuildFilePage(main)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if page.Documents[1].Dir != dir {
+		t.Fatalf("linked dir = %q, want %q", page.Documents[1].Dir, dir)
+	}
+}
+
 func TestCrossDocumentEnglishAnchor(t *testing.T) {
 	dir := t.TempDir()
 	other := filepath.Join(dir, "other.md")

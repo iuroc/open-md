@@ -47,6 +47,8 @@ type pageData struct {
 	Active           int
 	ActiveID         string
 	ActiveTitle      string
+	ActivePath       string
+	ActiveDir        string
 	Documents        []Document
 	LinkedDocuments  []Document
 	Warnings         []string
@@ -65,7 +67,15 @@ type pageData struct {
 
 var maxSingleFileBytes int64 = 32 << 20
 
+func makeAbsolute(path string) string {
+	if abs, err := filepath.Abs(path); err == nil {
+		return filepath.Clean(abs)
+	}
+	return filepath.Clean(path)
+}
+
 func BuildFilePage(filePath string) (*Page, error) {
+	filePath = makeAbsolute(filePath)
 	info, err := os.Stat(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("无法读取 Markdown 文件: %w", err)
@@ -101,9 +111,13 @@ func RenderPage(page *Page) ([]byte, error) {
 	light, dark := HighlightCSS()
 	activeTitle := page.Title
 	activeID := ""
+	activePath := ""
+	activeDir := ""
 	if page.Active >= 0 && page.Active < len(page.Documents) {
 		activeTitle = page.Documents[page.Active].Title
 		activeID = page.Documents[page.Active].ID
+		activePath = page.Documents[page.Active].Path
+		activeDir = page.Documents[page.Active].Dir
 	}
 	var linkedDocs []Document
 	for _, doc := range page.Documents {
@@ -117,6 +131,8 @@ func RenderPage(page *Page) ([]byte, error) {
 		Active:           page.Active,
 		ActiveID:         activeID,
 		ActiveTitle:      activeTitle,
+		ActivePath:       activePath,
+		ActiveDir:        activeDir,
 		Documents:        page.Documents,
 		LinkedDocuments:  linkedDocs,
 		Warnings:         page.Warnings,

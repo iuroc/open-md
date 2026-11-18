@@ -59,6 +59,7 @@ func buildPageFromSources(mode, title string, initial []sourceDoc) (*Page, error
 			continue
 		}
 		doc.ID = id
+		doc.Dir = filepath.Dir(sourceDoc.Path)
 		doc.RelPath = sourceDoc.RelPath
 		doc.Linked = sourceDoc.Linked
 		docs = append(docs, *doc)
@@ -184,6 +185,7 @@ func errorDocumentForSource(doc sourceDoc, id string) Document {
 	body := fmt.Sprintf(`<p class="read-error">无法读取 <code>%s</code></p>`, stdhtml.EscapeString(name))
 	return Document{
 		Path:    doc.Path,
+		Dir:     filepath.Dir(doc.Path),
 		RelPath: name,
 		ID:      id,
 		Title:   title,

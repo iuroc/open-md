@@ -11,6 +11,54 @@ import (
 	"openmd/internal/buildinfo"
 )
 
+func TestBuildFilePageNormalizesPathAndSetsDir(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "note.md")
+	if err := os.WriteFile(path, []byte("# Title\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	page, err := BuildFilePage(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if page.Documents[0].Path != path {
+		t.Fatalf("path = %q, want %q", page.Documents[0].Path, path)
+	}
+	if page.Documents[0].Dir != dir {
+		t.Fatalf("dir = %q, want %q", page.Documents[0].Dir, dir)
+	}
+}
+
+func TestMakeAbsolute(t *testing.T) {
+	got := makeAbsolute("note.md")
+	if !filepath.IsAbs(got) {
+		t.Fatalf("makeAbsolute returned relative path %q", got)
+	}
+}
+
+func TestRenderPageEmitsDocumentPathAttributes(t *testing.T) {
+	page := &Page{
+		Mode:  "file",
+		Title: "A",
+		Documents: []Document{{
+			ID:    "doc-0",
+			Title: "A",
+			Path:  `C:\文档\a b.md`,
+			Dir:   `C:\文档`,
+		}},
+	}
+	out, err := RenderPage(page)
+	if err != nil {
+		t.Fatal(err)
+	}
+	html := string(out)
+	for _, want := range []string{`data-path="C:\文档\a b.md"`, `data-dir="C:\文档"`} {
+		if !strings.Contains(html, want) {
+			t.Fatalf("missing %q in %s", want, html)
+		}
+	}
+}
+
 func TestReadFileLimitedRejectsOverLimit(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "note.md")
