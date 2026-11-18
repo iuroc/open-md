@@ -5,7 +5,7 @@
 ## 特性
 
 - 单 exe，自安装，不需要管理员权限。
-- 注册为 `.md` / `.markdown` 的“打开方式”，并增加右键菜单。
+- 注册为 `.md` / `.markdown` 的“打开方式”，并增加带图标的右键菜单。
 - 支持右键文件夹和文件夹空白处，浏览当前目录的 Markdown 文档列表。
 - 目录模式的侧栏分为“文件列表”和“大纲”两个 Tab，默认显示文件列表。
 - 侧栏可收起；阅读区可在固定宽度和全宽模式之间切换。
@@ -102,6 +102,13 @@ OpenMD.exe --uninstall
 - 远程 `http(s)` 图片保持原地址，离线时可能不显示。
 - exe 未做代码签名，首次运行可能触发 SmartScreen 提示。
 - 不做 PDF 导出、数学公式、Mermaid、文件监听或实时预览。
+
+## 图标
+
+- 图标源文件：`assets/openmd.ico`
+- 重新生成：`go run ./tools/icon`
+- 嵌入 exe：`rsrc -ico assets/openmd.ico -o rsrc_windows_amd64.syso`
+- 已提交的 `rsrc_windows_amd64.syso` 会被 `go build` 自动使用，日常构建不需要再安装 `rsrc`
 
 ## 开发
 
