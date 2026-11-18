@@ -417,8 +417,7 @@ a:hover {
 
 .icon-button:focus-visible,
 .theme-option:focus-visible,
-.release-link:focus-visible,
-#copy-path:focus-visible {
+.panel-action:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -469,8 +468,11 @@ a:hover {
   font-size: 11px;
 }
 
-.copy-path {
-  margin-top: 8px;
+.panel-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
   padding: 5px 9px;
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -479,11 +481,17 @@ a:hover {
   cursor: pointer;
   font: inherit;
   font-size: 12px;
+  text-decoration: none;
 }
 
-.copy-path:hover {
+.panel-action:hover {
   background: var(--bg-hover);
   color: var(--fg);
+  text-decoration: none;
+}
+
+.copy-path {
+  margin-top: 8px;
 }
 
 .copy-status {
@@ -502,16 +510,7 @@ a:hover {
 }
 
 .release-link {
-  display: inline-block;
-  margin-top: 8px;
-  color: var(--fg-muted);
-  font-size: 12px;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.release-link:hover {
-  color: var(--accent);
+  margin-top: 10px;
 }
 
 

@@ -19,6 +19,8 @@
   var copyPathButton = document.getElementById("copy-path");
   var copyStatusEl = document.getElementById("copy-status");
   var currentPath = "";
+  var copyStatusTimer = null;
+  var copyGeneration = 0;
   var themeButtons = Array.prototype.slice.call(document.querySelectorAll(".theme-option"));
   var validThemes = ["blue", "teal", "violet", "graphite"];
   var themeQuery = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
@@ -113,12 +115,25 @@
   }
 
   function setCopyStatus(text) {
+    if (copyStatusTimer) {
+      window.clearTimeout(copyStatusTimer);
+      copyStatusTimer = null;
+    }
     if (copyStatusEl) {
       copyStatusEl.textContent = text;
+    }
+    if (text) {
+      copyStatusTimer = window.setTimeout(function () {
+        copyStatusTimer = null;
+        if (copyStatusEl) {
+          copyStatusEl.textContent = "";
+        }
+      }, 2000);
     }
   }
 
   function fallbackCopy(text) {
+    var previousFocus = document.activeElement;
     var area = document.createElement("textarea");
     area.value = text;
     area.setAttribute("readonly", "");
@@ -133,6 +148,9 @@
       ok = false;
     }
     document.body.removeChild(area);
+    if (previousFocus && previousFocus.focus) {
+      previousFocus.focus();
+    }
     return ok;
   }
 
@@ -141,18 +159,30 @@
       setCopyStatus("没有可复制的路径");
       return;
     }
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(currentPath).then(
-        function () {
-          setCopyStatus("已复制");
-        },
-        function () {
-          setCopyStatus(fallbackCopy(currentPath) ? "已复制" : "复制失败");
-        }
-      );
-      return;
+    var request = ++copyGeneration;
+    var requestedPath = currentPath;
+    function settle(text) {
+      if (request !== copyGeneration || currentPath !== requestedPath) {
+        return;
+      }
+      setCopyStatus(text);
     }
-    setCopyStatus(fallbackCopy(currentPath) ? "已复制" : "复制失败");
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        navigator.clipboard.writeText(requestedPath).then(
+          function () {
+            settle("已复制");
+          },
+          function () {
+            settle(fallbackCopy(requestedPath) ? "已复制" : "复制失败");
+          }
+        );
+        return;
+      } catch (err) {
+        // Fall through to the textarea fallback.
+      }
+    }
+    settle(fallbackCopy(requestedPath) ? "已复制" : "复制失败");
   }
 
   function closeMobileSidebar() {
@@ -298,6 +328,7 @@
     if (fileDirEl) {
       fileDirEl.textContent = section.getAttribute("data-dir") || "";
     }
+    copyGeneration += 1;
     setCopyStatus("");
 
     replaceTOC(section);

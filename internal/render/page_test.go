@@ -31,6 +31,7 @@ func TestRenderPageShowsFilePropertiesPanel(t *testing.T) {
 		`id="file-path"`,
 		`id="file-dir"`,
 		`id="copy-path"`,
+		`class="copy-path panel-action"`,
 		`id="copy-status"`,
 		`信息与设置`,
 		`aria-label="信息与设置"`,
@@ -367,6 +368,7 @@ func TestRenderPageShowsBuildInfoAndReleaseLink(t *testing.T) {
 		"v2026.11.18-0959",
 		"2026-11-18 09:59:12 +08:00",
 		"https://t.2980.com/510Qkm",
+		`class="release-link panel-action"`,
 		"上传时间晚于构建时间",
 	} {
 		if !strings.Contains(s, want) {

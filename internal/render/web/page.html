@@ -105,7 +105,7 @@
               <div><dt>当前文档</dt><dd id="file-path" class="file-path">{{.ActivePath}}</dd></div>
               <div><dt>所在目录</dt><dd id="file-dir" class="file-path">{{.ActiveDir}}</dd></div>
             </dl>
-            <button type="button" id="copy-path" class="copy-path" aria-label="复制当前文档路径">复制路径</button>
+            <button type="button" id="copy-path" class="copy-path panel-action" aria-label="复制当前文档路径">复制路径</button>
             <span id="copy-status" class="copy-status" role="status" aria-live="polite"></span>
           </div>
           <div class="settings-group">
@@ -126,7 +126,7 @@
             </dl>
             {{if .ReleaseAvailable}}
             <p class="about-hint">网盘里的 OpenMD.exe 上传时间晚于构建时间时，说明有更新。</p>
-            <a class="release-link" href="{{.ReleaseURL}}" target="_blank" rel="noopener noreferrer">打开发布页</a>
+            <a class="release-link panel-action" href="{{.ReleaseURL}}" target="_blank" rel="noopener noreferrer">打开发布页</a>
             {{else}}
             <p class="about-hint">开发构建，未提供发布页。</p>
             {{end}}

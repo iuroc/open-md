@@ -71,6 +71,8 @@ func makeAbsolute(path string) string {
 	if abs, err := filepath.Abs(path); err == nil {
 		return filepath.Clean(abs)
 	}
+	// Defensive fallback for environments where the working directory is
+	// unavailable; the original path is the best information we have.
 	return filepath.Clean(path)
 }
 
