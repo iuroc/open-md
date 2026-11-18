@@ -24,12 +24,20 @@
       </div>
       <div class="tab-panel" id="tab-panel-files" data-tab-panel="files" role="tabpanel" aria-labelledby="tab-button-files">
         <nav id="doc-list" aria-label="文件列表">
-          {{$active := .Active}}
-          {{range $i, $doc := .Documents}}
-          <button type="button" class="doc-item{{if eq $i $active}} active{{end}}" data-doc-target="{{$doc.ID}}" title="{{$doc.RelPath}}">
-            <span class="doc-title">{{$doc.Title}}</span>
-            <span class="doc-path">{{$doc.RelPath}}</span>
+          {{range .InitialDocuments}}
+          <button type="button" class="doc-item{{if eq .ID $.ActiveID}} active{{end}}" data-doc-target="{{.ID}}" title="{{.RelPath}}">
+            <span class="doc-title">{{.Title}}</span>
+            <span class="doc-path">{{.RelPath}}</span>
           </button>
+          {{end}}
+          {{if .LinkedDocuments}}
+          <div class="sidebar-subgroup">链接的文档</div>
+          {{range .LinkedDocuments}}
+          <button type="button" class="doc-item linked{{if eq .ID $.ActiveID}} active{{end}}" data-doc-target="{{.ID}}" title="{{.RelPath}}">
+            <span class="doc-title">{{.Title}}</span>
+            <span class="doc-path">{{.RelPath}}</span>
+          </button>
+          {{end}}
           {{end}}
         </nav>
       </div>
@@ -37,6 +45,24 @@
         <nav id="toc" aria-label="大纲"></nav>
       </div>
       {{else}}
+      {{if .LinkedDocuments}}
+      <div class="sidebar-label">文档</div>
+      <nav id="file-list" aria-label="文档">
+        {{range .InitialDocuments}}
+        <button type="button" class="doc-item{{if eq .ID $.ActiveID}} active{{end}}" data-doc-target="{{.ID}}" title="{{.RelPath}}">
+          <span class="doc-title">{{.Title}}</span>
+          <span class="doc-path">{{.RelPath}}</span>
+        </button>
+        {{end}}
+        <div class="sidebar-subgroup">链接的文档</div>
+        {{range .LinkedDocuments}}
+        <button type="button" class="doc-item linked{{if eq .ID $.ActiveID}} active{{end}}" data-doc-target="{{.ID}}" title="{{.RelPath}}">
+          <span class="doc-title">{{.Title}}</span>
+          <span class="doc-path">{{.RelPath}}</span>
+        </button>
+        {{end}}
+      </nav>
+      {{end}}
       <div class="sidebar-label">大纲</div>
       <nav id="toc" aria-label="大纲"></nav>
       {{end}}

@@ -30,6 +30,7 @@ type Document struct {
 	Title   string
 	HTML    template.HTML
 	TOC     []Heading
+	Linked  bool
 }
 
 type RenderOptions struct {

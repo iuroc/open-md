@@ -149,6 +149,18 @@ a:hover {
   gap: 2px;
 }
 
+.sidebar-subgroup {
+  margin: 14px 10px 5px;
+  color: var(--fg-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.doc-item.linked .doc-path {
+  opacity: 0.55;
+}
+
 .doc-item {
   width: 100%;
   padding: 8px 10px;

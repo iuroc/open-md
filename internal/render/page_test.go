@@ -136,6 +136,31 @@ func TestRenderPageFileModeHasNoFileListTab(t *testing.T) {
 	}
 }
 
+func TestRenderPageShowsLinkedDocumentsGroup(t *testing.T) {
+	page := &Page{
+		Mode:  "file",
+		Title: "A",
+		Documents: []Document{
+			{ID: "doc-0", Title: "A", HTML: template.HTML("<p>a</p>")},
+			{ID: "doc-1", Title: "B", RelPath: `..\other\b.md`, Linked: true, HTML: template.HTML("<p>b</p>")},
+		},
+	}
+	out, err := RenderPage(page)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(out)
+	if !strings.Contains(s, "链接的文档") {
+		t.Fatal("linked documents group missing")
+	}
+	if !strings.Contains(s, `data-doc-target="doc-0"`) {
+		t.Fatal("original document button missing; cannot navigate back")
+	}
+	if !strings.Contains(s, `data-doc-target="doc-1"`) {
+		t.Fatal("linked document button missing")
+	}
+}
+
 func TestHighlightCSSIncludesBothModes(t *testing.T) {
 	light, dark := HighlightCSS()
 	if !strings.Contains(light, ".chroma.light") {

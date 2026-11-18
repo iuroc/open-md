@@ -2,11 +2,8 @@ package render
 
 import (
 	"fmt"
-	stdhtml "html"
-	"html/template"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"openmd/internal/scan"
 )
@@ -29,47 +26,15 @@ func BuildDirPage(dirPath string) (*Page, error) {
 }
 
 func buildDirPage(docs []scan.Document) (*Page, error) {
-	knownDocs := make(map[string]string, len(docs))
-	for i, doc := range docs {
-		knownDocs[strings.ToLower(filepath.Clean(doc.Path))] = fmt.Sprintf("doc-%d", i)
-	}
-
-	rendered := make([]Document, 0, len(docs))
-	for i, doc := range docs {
-		id := fmt.Sprintf("doc-%d", i)
+	initial := make([]sourceDoc, 0, len(docs))
+	for _, doc := range docs {
 		source, err := os.ReadFile(doc.Path)
-		if err != nil {
-			rendered = append(rendered, errorDocument(doc, id))
-			continue
-		}
-		renderedDoc, err := RenderMarkdown(source, doc.Path, RenderOptions{
-			IDPrefix:  id,
-			KnownDocs: knownDocs,
+		initial = append(initial, sourceDoc{
+			Path:    doc.Path,
+			RelPath: doc.Name,
+			Source:  source,
+			ReadErr: err,
 		})
-		if err != nil {
-			rendered = append(rendered, errorDocument(doc, id))
-			continue
-		}
-		renderedDoc.ID = id
-		renderedDoc.RelPath = doc.Name
-		rendered = append(rendered, *renderedDoc)
 	}
-
-	return &Page{
-		Mode:      "dir",
-		Active:    0,
-		Documents: rendered,
-	}, nil
-}
-
-func errorDocument(doc scan.Document, id string) Document {
-	title := strings.TrimSuffix(doc.Name, filepath.Ext(doc.Name))
-	body := fmt.Sprintf(`<p class="read-error">无法读取 <code>%s</code></p>`, stdhtml.EscapeString(doc.Name))
-	return Document{
-		Path:    doc.Path,
-		RelPath: doc.Name,
-		ID:      id,
-		Title:   title,
-		HTML:    template.HTML(body),
-	}
+	return buildPageFromSources("dir", "", initial)
 }

@@ -36,16 +36,19 @@ var githubMarkdownCSS string
 var pageTemplate = template.Must(template.New("page").Parse(pageTemplateSource))
 
 type pageData struct {
-	Title       string
-	Mode        string
-	Active      int
-	ActiveTitle string
-	Documents   []Document
-	Warnings    []string
-	CSS         template.CSS
-	MarkdownCSS template.CSS
-	ChromaCSS   template.CSS
-	JS          template.JS
+	Title            string
+	Mode             string
+	Active           int
+	ActiveID         string
+	ActiveTitle      string
+	Documents        []Document
+	InitialDocuments []Document
+	LinkedDocuments  []Document
+	Warnings         []string
+	CSS              template.CSS
+	MarkdownCSS      template.CSS
+	ChromaCSS        template.CSS
+	JS               template.JS
 }
 
 func BuildFilePage(filePath string) (*Page, error) {
@@ -53,37 +56,50 @@ func BuildFilePage(filePath string) (*Page, error) {
 	if err != nil {
 		return nil, fmt.Errorf("无法读取 Markdown 文件: %w", err)
 	}
-	doc, err := RenderMarkdown(source, filePath, RenderOptions{IDPrefix: "doc-0"})
+	page, err := buildPageFromSources("file", "", []sourceDoc{{
+		Path:    filePath,
+		RelPath: filepath.Base(filePath),
+		Source:  source,
+	}})
 	if err != nil {
 		return nil, err
 	}
-	doc.ID = "doc-0"
-	doc.RelPath = filepath.Base(filePath)
-	return &Page{
-		Mode:      "file",
-		Title:     doc.Title,
-		Active:    0,
-		Documents: []Document{*doc},
-	}, nil
+	if len(page.Documents) > 0 {
+		page.Title = page.Documents[0].Title
+	}
+	return page, nil
 }
 
 func RenderPage(page *Page) ([]byte, error) {
 	light, dark := HighlightCSS()
 	activeTitle := page.Title
+	activeID := ""
 	if page.Active >= 0 && page.Active < len(page.Documents) {
 		activeTitle = page.Documents[page.Active].Title
+		activeID = page.Documents[page.Active].ID
+	}
+	var initialDocs, linkedDocs []Document
+	for _, doc := range page.Documents {
+		if doc.Linked {
+			linkedDocs = append(linkedDocs, doc)
+		} else {
+			initialDocs = append(initialDocs, doc)
+		}
 	}
 	data := pageData{
-		Title:       page.Title,
-		Mode:        page.Mode,
-		Active:      page.Active,
-		ActiveTitle: activeTitle,
-		Documents:   page.Documents,
-		Warnings:    page.Warnings,
-		CSS:         template.CSS(readerCSS),
-		MarkdownCSS: template.CSS(githubMarkdownCSS),
-		ChromaCSS:   template.CSS(light + "\n" + dark),
-		JS:          template.JS(readerJS),
+		Title:            page.Title,
+		Mode:             page.Mode,
+		Active:           page.Active,
+		ActiveID:         activeID,
+		ActiveTitle:      activeTitle,
+		Documents:        page.Documents,
+		InitialDocuments: initialDocs,
+		LinkedDocuments:  linkedDocs,
+		Warnings:         page.Warnings,
+		CSS:              template.CSS(readerCSS),
+		MarkdownCSS:      template.CSS(githubMarkdownCSS),
+		ChromaCSS:        template.CSS(light + "\n" + dark),
+		JS:               template.JS(readerJS),
 	}
 	var buf bytes.Buffer
 	if err := pageTemplate.Execute(&buf, data); err != nil {
