@@ -9,7 +9,7 @@
 ## 2. 集成验证
 
 - [x] 2.1 运行完整测试和静态检查：`go test ./... -count=1`、`go vet ./...`，两者均无输出错误
-- [ ] 2.2 运行 `printf '\n' | cmd.exe //c build.bat`，确认测试通过、版本号和构建时间已注入、`OpenMD.exe` 生成成功
+- [x] 2.2 运行 `printf '\n' | cmd.exe //c build.bat`，确认测试通过、版本号和构建时间已注入、`OpenMD.exe` 生成成功
 
 ## Workflow follow-up
 
