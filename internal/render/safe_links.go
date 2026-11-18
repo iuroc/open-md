@@ -13,7 +13,35 @@ type safeLinkRenderer struct{}
 
 func (r *safeLinkRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	reg.Register(ast.KindLink, r.renderLink)
+	reg.Register(ast.KindAutoLink, r.renderAutoLink)
 	reg.Register(ast.KindImage, r.renderImage)
+}
+
+func (r *safeLinkRenderer) renderAutoLink(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
+	if !entering {
+		return ast.WalkContinue, nil
+	}
+	auto := n.(*ast.AutoLink)
+	href := util.URLEscape(auto.URL(source), false)
+	if auto.AutoLinkType == ast.AutoLinkEmail && !strings.HasPrefix(strings.ToLower(string(href)), "mailto:") {
+		href = append([]byte("mailto:"), href...)
+	}
+
+	_, _ = w.WriteString(`<a href="`)
+	if !gmhtml.IsDangerousURL(href) {
+		_, _ = w.Write(util.EscapeHTML(href))
+	}
+	_ = w.WriteByte('"')
+	if opensInNewTab(href) {
+		_, _ = w.WriteString(` target="_blank" rel="noopener noreferrer"`)
+	}
+	if auto.Attributes() != nil {
+		gmhtml.RenderAttributes(w, auto, gmhtml.LinkAttributeFilter)
+	}
+	_ = w.WriteByte('>')
+	_, _ = w.Write(util.EscapeHTML(auto.Label(source)))
+	_, _ = w.WriteString(`</a>`)
+	return ast.WalkContinue, nil
 }
 
 func (r *safeLinkRenderer) renderLink(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
