@@ -13,6 +13,7 @@
   --warning-bg: #fff8c5;
   --warning-border: #d4a72c;
   --shadow: 0 8px 24px rgba(140, 149, 159, 0.2);
+  --chrome-height: 60px;
   --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
 }
@@ -82,11 +83,12 @@ a:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 20px;
+  height: var(--chrome-height);
+  padding: 0 20px;
+  border-bottom: 1px solid var(--border);
   font-size: 18px;
   font-weight: 700;
   letter-spacing: 0.02em;
-  border-bottom: 1px solid var(--border);
 }
 
 .sidebar-header .sidebar-close {
@@ -273,8 +275,8 @@ a:hover {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 58px;
-  padding: 12px 32px;
+  height: var(--chrome-height);
+  padding: 0 32px;
   border-bottom: 1px solid var(--border);
   background: var(--bg);
 }
@@ -545,7 +547,7 @@ body.full-width #doc-content {
 
   .topbar {
     gap: 8px;
-    padding: 10px 16px;
+    padding: 0 16px;
   }
 
   .warnings {
