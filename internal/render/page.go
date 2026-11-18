@@ -52,6 +52,8 @@ type pageData struct {
 	Warnings         []string
 	VersionLabel     string
 	BuildTime        string
+	AuthorName       string
+	AuthorID         string
 	ReleaseAvailable bool
 	ReleaseURL       string
 	Favicon          template.URL
@@ -105,6 +107,8 @@ func RenderPage(page *Page) ([]byte, error) {
 		Warnings:         page.Warnings,
 		VersionLabel:     buildinfo.VersionLabel(),
 		BuildTime:        buildinfo.BuildTimeDisplay(),
+		AuthorName:       buildinfo.AuthorName,
+		AuthorID:         buildinfo.AuthorID,
 		ReleaseAvailable: buildinfo.IsReleaseBuild(),
 		ReleaseURL:       buildinfo.ReleaseURL,
 		Favicon:          template.URL("data:image/png;base64," + base64.StdEncoding.EncodeToString(faviconPNG)),

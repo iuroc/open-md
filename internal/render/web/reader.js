@@ -109,7 +109,6 @@
 
   function closeMobileSidebar() {
     document.body.classList.remove("sidebar-open");
-    setSettingsOpen(false);
     syncMenuButton();
   }
 
@@ -311,9 +310,6 @@
         );
       }
       syncMenuButton();
-      if (!sidebarVisible()) {
-        setSettingsOpen(false);
-      }
     });
   }
 

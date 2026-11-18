@@ -7,7 +7,11 @@ var (
 	BuildTime = ""
 )
 
-const ReleaseURL = "https://t.2980.com/510Qkm"
+const (
+	ReleaseURL = "https://t.2980.com/510Qkm"
+	AuthorName = "易舒"
+	AuthorID   = "25768"
+)
 
 func IsReleaseBuild() bool {
 	return Version != "" && Version != "dev" && BuildTime != ""

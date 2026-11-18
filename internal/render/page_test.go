@@ -221,6 +221,9 @@ func TestRenderPageShowsBuildInfoAndReleaseLink(t *testing.T) {
 	s := html.UnescapeString(string(out))
 	for _, want := range []string{
 		`id="settings-panel"`,
+		`name="author" content="易舒 (25768)"`,
+		"易舒",
+		"25768",
 		`data-theme="blue"`,
 		`data-theme="teal"`,
 		"v2026.11.18-0959",
