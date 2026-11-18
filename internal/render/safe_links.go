@@ -1,6 +1,8 @@
 package render
 
 import (
+	"strings"
+
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/renderer"
 	gmhtml "github.com/yuin/goldmark/renderer/html"
@@ -29,11 +31,22 @@ func (r *safeLinkRenderer) renderLink(w util.BufWriter, source []byte, n ast.Nod
 		_, _ = w.Write(util.EscapeHTML(link.Title))
 		_, _ = w.WriteString(`"`)
 	}
+	if opensInNewTab(link.Destination) {
+		_, _ = w.WriteString(` target="_blank" rel="noopener noreferrer"`)
+	}
 	if link.Attributes() != nil {
 		gmhtml.RenderAttributes(w, link, gmhtml.LinkAttributeFilter)
 	}
 	_ = w.WriteByte('>')
 	return ast.WalkContinue, nil
+}
+
+func opensInNewTab(destination []byte) bool {
+	lower := strings.ToLower(string(destination))
+	return strings.HasPrefix(lower, "http://") ||
+		strings.HasPrefix(lower, "https://") ||
+		strings.HasPrefix(lower, "file:") ||
+		strings.HasPrefix(lower, "//")
 }
 
 func (r *safeLinkRenderer) renderImage(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
