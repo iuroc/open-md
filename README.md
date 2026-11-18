@@ -2,8 +2,6 @@
 
 一个只读的 Windows Markdown 阅读器：把 Markdown 转成 HTML，用默认浏览器打开，用于快速阅读。
 
-作者：<https://github.com/iuroc>
-
 ## 特性
 
 - 单 exe，自安装，不需要管理员权限。
@@ -35,6 +33,26 @@ go build -trimpath -ldflags "-s -w -H=windowsgui" -o OpenMD.exe .
 只想要源码包时，双击 `bundle.bat` 即可。
 
 产物是单个 `OpenMD.exe`。手动执行上面的 `go build` 时页面会显示“开发版”；用 `build.bat` 构建才会写入正式版本号和构建时间。
+
+## 持续集成与发布
+
+GitHub Actions 工作流见 `.github/workflows/build.yml`：
+
+- Pull Request：只运行 `go vet ./...` 和 `go test ./... -count=1`。
+- push 到 `main`：测试通过后构建 `OpenMD.exe`，作为 workflow artifact 保留 14 天。
+- push `v*` 标签：构建并创建 GitHub Release，附加 `OpenMD.exe` 和 `OpenMD.exe.sha256`。
+- 也可以在 Actions 页面手动触发（workflow_dispatch）。
+
+版本号规则：tag 构建去掉前缀 `v` 作为版本号；`main` 构建使用 `yyyy.MM.dd-<run_number>`。`build.bat` 会识别外部传入的 `BUILD_VERSION`、`BUILD_TIME`；设置 `CI=true` 时跳过 `source.git.bundle` 和 `pause`，设置 `OPENMD_SKIP_TESTS=true` 时跳过测试（CI 中测试已由前一个 job 完成）。
+
+发布正式版本：
+
+```bash
+git tag v2026.11.18
+git push origin v2026.11.18
+```
+
+私有仓库的 Actions 和 Release 附件都需要有权限的账号访问；Windows runner 按 2 倍分钟计费。
 
 ## 版本与更新
 
