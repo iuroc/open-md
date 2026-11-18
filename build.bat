@@ -31,9 +31,17 @@ if errorlevel 1 (
     exit /b 1
 )
 
+for /f "delims=" %%i in ('powershell -NoProfile -Command "Get-Date -Format yyyy.MM.dd-HHmm"') do set "BUILD_VERSION=%%i"
+for /f "delims=" %%i in ('powershell -NoProfile -Command "Get-Date -Format yyyy-MM-ddTHH:mm:sszzz"') do set "BUILD_TIME=%%i"
+if not defined BUILD_VERSION set "BUILD_VERSION=dev"
+set "LDEXTRA=-X openmd/internal/buildinfo.Version=%BUILD_VERSION%"
+if defined BUILD_TIME set "LDEXTRA=%LDEXTRA% -X openmd/internal/buildinfo.BuildTime=%BUILD_TIME%"
+
 echo.
 echo Building OpenMD.exe...
-go build -trimpath -ldflags "-s -w -H=windowsgui" -o OpenMD.exe .
+echo   Version:    %BUILD_VERSION%
+echo   Build time: %BUILD_TIME%
+go build -trimpath -ldflags "-s -w -H=windowsgui %LDEXTRA%" -o OpenMD.exe .
 if errorlevel 1 (
     echo.
     echo Build failed.

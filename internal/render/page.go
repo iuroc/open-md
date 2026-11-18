@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"openmd/internal/buildinfo"
+
 	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
 	"github.com/alecthomas/chroma/v2/styles"
 )
@@ -45,6 +47,10 @@ type pageData struct {
 	InitialDocuments []Document
 	LinkedDocuments  []Document
 	Warnings         []string
+	VersionLabel     string
+	BuildTime        string
+	ReleaseAvailable bool
+	ReleaseURL       string
 	CSS              template.CSS
 	MarkdownCSS      template.CSS
 	ChromaCSS        template.CSS
@@ -96,6 +102,10 @@ func RenderPage(page *Page) ([]byte, error) {
 		InitialDocuments: initialDocs,
 		LinkedDocuments:  linkedDocs,
 		Warnings:         page.Warnings,
+		VersionLabel:     buildinfo.VersionLabel(),
+		BuildTime:        buildinfo.BuildTimeDisplay(),
+		ReleaseAvailable: buildinfo.IsReleaseBuild(),
+		ReleaseURL:       buildinfo.ReleaseURL,
 		CSS:              template.CSS(readerCSS),
 		MarkdownCSS:      template.CSS(githubMarkdownCSS),
 		ChromaCSS:        template.CSS(light + "\n" + dark),

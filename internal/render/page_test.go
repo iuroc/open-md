@@ -1,11 +1,14 @@
 package render
 
 import (
+	"html"
 	"html/template"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"openmd/internal/buildinfo"
 )
 
 func TestBuildFilePage(t *testing.T) {
@@ -51,7 +54,7 @@ func TestRenderPageContainsEmbeddedUIAndCSP(t *testing.T) {
 		t.Fatal(err)
 	}
 	s := string(out)
-	for _, want := range []string{"<!doctype html>", "Content-Security-Policy", "<style>", "<script>", `data-doc-id="doc-0"`, `class="toc-template"`} {
+	for _, want := range []string{"<!doctype html>", "Content-Security-Policy", "<style>", "<script>", `data-doc-id="doc-0"`, `class="toc-template"`, `id="menu-toggle"`, `id="width-toggle"`, `id="version-button"`, `id="about-panel"`} {
 		if !strings.Contains(s, want) {
 			t.Fatalf("missing %q", want)
 		}
@@ -183,5 +186,61 @@ func TestRenderPageEscapesTitle(t *testing.T) {
 	}
 	if strings.Contains(string(out), "<script>alert(1)</script>") {
 		t.Fatal("title was not escaped")
+	}
+}
+
+func TestRenderPageShowsBuildInfoAndReleaseLink(t *testing.T) {
+	oldVersion, oldBuildTime := buildinfo.Version, buildinfo.BuildTime
+	defer func() {
+		buildinfo.Version, buildinfo.BuildTime = oldVersion, oldBuildTime
+	}()
+	buildinfo.Version = "2026.11.18-0959"
+	buildinfo.BuildTime = "2026-11-18T09:59:12+08:00"
+
+	page := &Page{
+		Mode:      "file",
+		Title:     "A",
+		Documents: []Document{{ID: "doc-0", Title: "A", HTML: template.HTML("<p>a</p>")}},
+	}
+	out, err := RenderPage(page)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := html.UnescapeString(string(out))
+	for _, want := range []string{
+		"v2026.11.18-0959",
+		"2026-11-18 09:59:12 +08:00",
+		"https://t.2980.com/510Qkm",
+		"上传时间晚于构建时间",
+	} {
+		if !strings.Contains(s, want) {
+			t.Fatalf("missing %q", want)
+		}
+	}
+}
+
+func TestRenderPageHidesReleaseLinkForDevBuild(t *testing.T) {
+	oldVersion, oldBuildTime := buildinfo.Version, buildinfo.BuildTime
+	defer func() {
+		buildinfo.Version, buildinfo.BuildTime = oldVersion, oldBuildTime
+	}()
+	buildinfo.Version = "dev"
+	buildinfo.BuildTime = ""
+
+	page := &Page{
+		Mode:      "file",
+		Title:     "A",
+		Documents: []Document{{ID: "doc-0", Title: "A", HTML: template.HTML("<p>a</p>")}},
+	}
+	out, err := RenderPage(page)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(out)
+	if strings.Contains(s, "t.2980.com") {
+		t.Fatal("dev build must not expose the release URL")
+	}
+	if !strings.Contains(s, "开发版") {
+		t.Fatal("dev build label missing")
 	}
 }
