@@ -367,9 +367,9 @@ func TestRenderPageShowsBuildInfoAndReleaseLink(t *testing.T) {
 		`data-theme="teal"`,
 		"v2026.11.18-0959",
 		"2026-11-18 09:59:12 +08:00",
-		"https://t.2980.com/510Qkm",
+		"https://github.com/iuroc/open-md/releases",
 		`class="release-link panel-action"`,
-		"上传时间晚于构建时间",
+		"晚于当前构建时间",
 	} {
 		if !strings.Contains(s, want) {
 			t.Fatalf("missing %q", want)
@@ -395,7 +395,7 @@ func TestRenderPageHidesReleaseLinkForDevBuild(t *testing.T) {
 		t.Fatal(err)
 	}
 	s := string(out)
-	if strings.Contains(s, "t.2980.com") {
+	if strings.Contains(s, "github.com/iuroc/open-md") {
 		t.Fatal("dev build must not expose the release URL")
 	}
 	if !strings.Contains(s, "开发版") {

@@ -125,7 +125,7 @@
               <div><dt>构建时间</dt><dd>{{.BuildTime}}</dd></div>
             </dl>
             {{if .ReleaseAvailable}}
-            <p class="about-hint">网盘里的 OpenMD.exe 上传时间晚于构建时间时，说明有更新。</p>
+            <p class="about-hint">GitHub Releases 里最新版本的构建时间晚于当前构建时间时，说明有更新。</p>
             <a class="release-link panel-action" href="{{.ReleaseURL}}" target="_blank" rel="noopener noreferrer">打开发布页</a>
             {{else}}
             <p class="about-hint">开发构建，未提供发布页。</p>

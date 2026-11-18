@@ -8,7 +8,7 @@ var (
 )
 
 const (
-	ReleaseURL = "https://t.2980.com/510Qkm"
+	ReleaseURL = "https://github.com/iuroc/open-md/releases"
 	AuthorName = "易舒"
 	AuthorID   = "25768"
 )

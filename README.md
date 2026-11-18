@@ -38,11 +38,12 @@ go build -trimpath -ldflags "-s -w -H=windowsgui" -o OpenMD.exe .
 
 ## 版本与更新
 
+- 仓库地址：<https://github.com/iuroc/open-md>（私有仓库，需要对应的 GitHub 访问权限）。
 - 顶栏右侧的齿轮按钮打开设置面板。
 - 设置面板显示作者、完整版本号、构建时间、配色选择，以及一个不太显眼的发布页链接。
-- 网盘里的 `OpenMD.exe` 上传时间晚于页面显示的构建时间，就说明有更新。
+- 发布页指向 GitHub Releases：<https://github.com/iuroc/open-md/releases>。最新版本的构建时间晚于页面显示的构建时间，就说明有更新。
 - 发布页链接只在正式构建的设置面板中出现；开发构建不会展示。
-- 页面加载时不会访问网盘，也不做自动更新检查。
+- 页面加载时不会访问 GitHub，也不做自动更新检查。
 
 ## 安装
 
