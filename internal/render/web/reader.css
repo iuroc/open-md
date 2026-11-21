@@ -1549,6 +1549,46 @@ body.split-mode .doc-section .doc-rendered {
 }
 
 @media print {
+  :root {
+    --bg: #ffffff !important;
+    --bg-subtle: #ffffff !important;
+    --fg: #1f2328 !important;
+    --fg-muted: #59636e !important;
+    --border: #d1d9e0 !important;
+    --accent: #0969da !important;
+    --accent-soft: #ffffff !important;
+  }
+
+  html {
+    color-scheme: light !important;
+  }
+
+  html,
+  body,
+  .app,
+  #content,
+  #doc-content,
+  .doc-section.markdown-body,
+  .doc-rendered {
+    background-color: #ffffff !important;
+  }
+
+  body {
+    color: #1f2328 !important;
+  }
+
+  .markdown-body {
+    color-scheme: light !important;
+    --bgColor-default: #ffffff !important;
+    --bgColor-muted: #ffffff !important;
+    --bgColor-neutral-muted: #ffffff !important;
+    --fgColor-default: #1f2328 !important;
+    --fgColor-muted: #59636e !important;
+    --borderColor-default: #d1d9e0 !important;
+    --borderColor-muted: #d1d9e0 !important;
+    --fgColor-accent: #0969da !important;
+  }
+
   #sidebar,
   .topbar,
   #menu-toggle {
@@ -1623,5 +1663,22 @@ body.split-mode .doc-section .doc-rendered {
     white-space: pre-wrap !important;
     overflow-wrap: anywhere !important;
     word-break: break-word !important;
+  }
+
+  .source-toolbar {
+    display: none !important;
+  }
+
+  .doc-section .chroma,
+  .doc-section .chroma.light,
+  .doc-section .chroma.dark {
+    background-color: transparent !important;
+  }
+}
+
+@media print and (prefers-color-scheme: dark) {
+  .doc-section .chroma.dark,
+  .doc-section .chroma.dark span {
+    color: #1f2328 !important;
   }
 }

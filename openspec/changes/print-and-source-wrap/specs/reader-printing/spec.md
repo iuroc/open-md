@@ -75,3 +75,26 @@
 
 - **WHEN** 用户关闭源码自动换行后打印源码视图
 - **THEN** 打印结果中的源码仍然自动换行，且不出现横向滚动条
+
+### Requirement: Printed pages use a white background
+
+打印页面 SHALL 使用纯白色背景，MUST NOT 保留当前配色或深色模式的页面底色。打印文本、代码和表格 SHALL 使用适合白底的可读颜色。
+
+#### Scenario: Print from a light theme
+
+- **WHEN** 用户使用浅色配色执行打印
+- **THEN** 打印结果背景为纯白色
+
+#### Scenario: Print from a dark theme
+
+- **WHEN** 用户使用深色模式执行打印
+- **THEN** 打印结果背景仍为纯白色，正文和代码保持深色可读
+
+### Requirement: Source toolbar is not printed
+
+源码模式打印时，源码工具栏 MUST NOT 出现在打印结果中，文件名和复制控件都不打印，只打印源码正文。
+
+#### Scenario: Print source view without toolbar
+
+- **WHEN** 用户在源码模式执行打印
+- **THEN** 打印结果不包含源码工具栏、文件名或复制按钮

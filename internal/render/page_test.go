@@ -620,6 +620,44 @@ func TestReaderCSSPrintWrapsCodeAndTables(t *testing.T) {
 	}
 }
 
+func TestReaderCSSPrintUsesWhiteBackground(t *testing.T) {
+	printCSS := readerPrintCSS(t)
+	root := cssRule(t, printCSS, ":root {")
+	for _, want := range []string{
+		"--bg: #ffffff !important;",
+		"--fg: #1f2328 !important;",
+		"--border: #d1d9e0 !important;",
+	} {
+		if !strings.Contains(root, want) {
+			t.Fatalf("print root rule missing %q: %s", want, root)
+		}
+	}
+	for _, want := range []string{
+		"background-color: #ffffff !important;",
+		"color-scheme: light !important;",
+		"--bgColor-default: #ffffff !important;",
+		"--bgColor-muted: #ffffff !important;",
+		"--fgColor-default: #1f2328 !important;",
+	} {
+		if !strings.Contains(printCSS, want) {
+			t.Fatalf("print block missing white background rule %q", want)
+		}
+	}
+	toolbar := cssRule(t, printCSS, ".source-toolbar {")
+	if !strings.Contains(toolbar, "display: none !important;") {
+		t.Fatalf("print must hide the source toolbar: %s", toolbar)
+	}
+	darkIndex := strings.Index(readerCSS, "@media print and (prefers-color-scheme: dark)")
+	if darkIndex < 0 {
+		t.Fatal("dark-mode print readability rule missing")
+	}
+	dark := readerCSS[darkIndex:]
+	if !strings.Contains(dark, ".doc-section .chroma.dark span") ||
+		!strings.Contains(dark, "color: #1f2328 !important;") {
+		t.Fatalf("dark-mode print must keep code readable on white: %s", dark)
+	}
+}
+
 func TestReaderCSSSupportsSourceWrapSetting(t *testing.T) {
 	noWrap := readerCSSRule(t, "body.source-no-wrap .doc-section .source-code.chroma {")
 	for _, want := range []string{
