@@ -992,7 +992,7 @@ docs = 500
 bytes = 26_214_400
 
 [owner]
-name = "易舒"
+name = "示例作者"
 tags = ["markdown", "中文"]
 
 [[matrix]]
@@ -1213,7 +1213,7 @@ docs = 500
 bytes = 26214400
 
 [owner]
-name = 易舒
+name = 示例作者
 `},
 			codeSample{"diff", `diff --git a/README.md b/README.md
 index 1111111..2222222 100644

@@ -23,7 +23,7 @@ type DocPageData struct {
 	VersionLabel     string
 	BuildTime        string
 	AuthorName       string
-	AuthorID         string
+	AuthorURL        string
 	ReleaseAvailable bool
 	ReleaseURL       string
 	Favicon          template.URL
@@ -42,8 +42,8 @@ func RenderDocPage(data DocPageData) ([]byte, error) {
 	if data.AuthorName == "" {
 		data.AuthorName = buildinfo.AuthorName
 	}
-	if data.AuthorID == "" {
-		data.AuthorID = buildinfo.AuthorID
+	if data.AuthorURL == "" {
+		data.AuthorURL = buildinfo.AuthorURL
 	}
 	if data.Favicon == "" {
 		data.Favicon = template.URL("data:image/png;base64," + base64.StdEncoding.EncodeToString(faviconPNG))

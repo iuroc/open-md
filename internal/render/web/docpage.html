@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src file: data: https: http:; style-src 'unsafe-inline' file:; script-src 'unsafe-inline' file:; font-src data:; base-uri 'none'; form-action 'none'">
 <link rel="icon" type="image/png" href="{{.Favicon}}">
-<meta name="author" content="{{.AuthorName}} ({{.AuthorID}})">
+<meta name="author" content="{{.AuthorName}}">
 <title>{{.Title}} - OpenMD</title>
 <script>
 (function () {
@@ -124,12 +124,12 @@
             </section>
             <section id="settings-panel-about" class="settings-tabpanel" role="tabpanel" aria-labelledby="settings-tab-button-about" data-settings-panel="about" hidden>
               <dl class="about-meta">
-                <div><dt>作者</dt><dd class="author-line">{{.AuthorName}}<span class="author-id">· {{.AuthorID}}</span></dd></div>
+                <div><dt>作者</dt><dd class="author-line"><a href="{{.AuthorURL}}" target="_blank" rel="noopener noreferrer">{{.AuthorName}}</a></dd></div>
                 <div><dt>版本</dt><dd>{{.VersionLabel}}</dd></div>
                 <div><dt>构建时间</dt><dd>{{.BuildTime}}</dd></div>
               </dl>
               {{if .ReleaseAvailable}}
-              <p class="about-hint">网盘里的 OpenMD.exe 上传时间晚于构建时间时，说明有更新。</p>
+              <p class="about-hint">GitHub Releases 里最新版本的构建时间晚于当前构建时间时，说明有更新。</p>
               <a class="release-link panel-action" href="{{.ReleaseURL}}" target="_blank" rel="noopener noreferrer">打开发布页</a>
               {{else}}
               <p class="about-hint">开发构建，未提供发布页。</p>
