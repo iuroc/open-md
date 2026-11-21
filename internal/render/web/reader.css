@@ -785,8 +785,8 @@ body.source-mode .doc-section .source-view {
   border-radius: 0 0 10px 10px;
   background-color: var(--bg-subtle);
   font-family: var(--font-mono);
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: 1rem;
+  line-height: 1.5;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   word-break: break-word;

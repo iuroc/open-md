@@ -338,6 +338,23 @@ func TestRenderPageDirectoryUsesSidebarTabs(t *testing.T) {
 	}
 }
 
+func TestReaderCSSSourceUsesBodyFontSize(t *testing.T) {
+	start := strings.Index(readerCSS, ".doc-section .source-code.chroma {")
+	if start < 0 {
+		t.Fatal("source code rule missing")
+	}
+	end := strings.Index(readerCSS[start:], "}")
+	if end < 0 {
+		t.Fatal("source code rule has no closing brace")
+	}
+	rule := readerCSS[start : start+end]
+	for _, want := range []string{"font-size: 1rem;", "line-height: 1.5;"} {
+		if !strings.Contains(rule, want) {
+			t.Fatalf("source code rule missing %q: %s", want, rule)
+		}
+	}
+}
+
 func TestReaderCSSKeepsTableHeadersOnOneLine(t *testing.T) {
 	if !strings.Contains(readerCSS, ".markdown-body table th {") {
 		t.Fatal("table header rule missing")
