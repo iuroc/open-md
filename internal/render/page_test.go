@@ -420,8 +420,8 @@ func TestReaderJSSupportsSoftDocumentNavigation(t *testing.T) {
 
 func TestDocPageFadesInOnBoot(t *testing.T) {
 	for _, want := range []string{
-		"html.openmd-booting body { opacity: 0; }",
-		"html.openmd-booting.openmd-ready body { opacity: 1; transition: opacity 180ms ease; }",
+		"html.openmd-booting #doc-content { opacity: 0; }",
+		"html.openmd-booting.openmd-ready #doc-content { opacity: 1; transition: opacity 180ms ease; }",
 		"openmd-booting",
 		"openmd-ready",
 		`history.scrollRestoration = "manual"`,

@@ -928,6 +928,7 @@
       var content = document.getElementById("doc-content");
       if (content) {
         content.innerHTML = '<p class="read-error">无法加载文档内容</p>';
+        document.documentElement.classList.remove("openmd-hash-load");
         initialScrollRestore = false;
         revealPage();
       }
