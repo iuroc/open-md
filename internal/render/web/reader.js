@@ -5,11 +5,14 @@
   var docButtons = Array.prototype.slice.call(document.querySelectorAll("[data-doc-target]"));
   var treeToggles = Array.prototype.slice.call(document.querySelectorAll("[data-tree-folder]"));
   var docList = document.getElementById("doc-list");
+  var sidebarScroll = document.querySelector("#sidebar .sidebar-scroll");
   var isDocPage = document.body.getAttribute("data-doc-page") === "true";
   var rootKey = document.body.getAttribute("data-root-key") || "";
   var activePath = document.body.getAttribute("data-active-path") || "";
   var treeStorageKey = "openmd-tree:" + rootKey;
   var sourceStorageKey = "openmd-source:" + rootKey;
+  var sidebarScrollKey = "openmd-sidebar-scroll:" + rootKey;
+  var sidebarScrollTimer = null;
   var tabButtons = Array.prototype.slice.call(document.querySelectorAll(".sidebar-tab"));
   var tabPanels = Array.prototype.slice.call(document.querySelectorAll(".tab-panel"));
   var toc = document.getElementById("toc");
@@ -545,7 +548,7 @@
 
   function markActiveTree() {
     if (!docList || !activePath) {
-      return;
+      return null;
     }
     var links = docList.querySelectorAll(".tree-file-link, .doc-item[data-tree-path]");
     for (var i = 0; i < links.length; i++) {
@@ -555,10 +558,49 @@
       links[i].classList.add("active");
       links[i].setAttribute("aria-current", "page");
       expandTreeAncestors(links[i]);
-      if (links[i].scrollIntoView) {
-        links[i].scrollIntoView({ block: "nearest" });
-      }
+      return links[i];
+    }
+    return null;
+  }
+
+  function filesPanelVisible() {
+    var panel = document.getElementById("tab-panel-files");
+    return !!(panel && !panel.hidden);
+  }
+
+  function saveSidebarScroll() {
+    if (!sidebarScroll || !filesPanelVisible()) {
       return;
+    }
+    try {
+      sessionStorage.setItem(sidebarScrollKey, String(Math.round(sidebarScroll.scrollTop)));
+    } catch (err) {}
+  }
+
+  function restoreSidebarScroll() {
+    if (!sidebarScroll || !filesPanelVisible()) {
+      return false;
+    }
+    var stored;
+    try {
+      stored = sessionStorage.getItem(sidebarScrollKey);
+    } catch (err) {
+      return false;
+    }
+    if (stored === null || stored === "") {
+      return false;
+    }
+    var top = parseInt(stored, 10);
+    if (isNaN(top) || top < 0) {
+      return false;
+    }
+    sidebarScroll.scrollTop = top;
+    return true;
+  }
+
+  function scrollActiveTreeIntoView(active) {
+    if (active && active.scrollIntoView) {
+      active.scrollIntoView({ block: "nearest" });
     }
   }
 
@@ -574,11 +616,18 @@
         setFolderExpanded(toggles[i], true, false);
       }
     }
-    markActiveTree();
+    var active = markActiveTree();
+    if (!restoreSidebarScroll()) {
+      scrollActiveTreeIntoView(active);
+    }
     saveTreeExpanded();
     docList.addEventListener("click", function (event) {
       var target = event.target;
       if (!target || !target.closest) {
+        return;
+      }
+      if (target.closest(".tree-file-link, .doc-item[data-tree-path]")) {
+        saveSidebarScroll();
         return;
       }
       var toggle = target.closest(".tree-toggle");
@@ -868,6 +917,13 @@
   applyTheme(validThemes.indexOf(storedTheme) >= 0 ? storedTheme : currentTheme(), false);
 
   if (isDocPage) {
+    if (sidebarScroll) {
+      sidebarScroll.addEventListener("scroll", function () {
+        clearTimeout(sidebarScrollTimer);
+        sidebarScrollTimer = setTimeout(saveSidebarScroll, 120);
+      }, { passive: true });
+      window.addEventListener("pagehide", saveSidebarScroll);
+    }
     initDocPage();
   } else {
     initialDoc();

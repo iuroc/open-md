@@ -21,6 +21,25 @@
 - **WHEN** 某个文件是当前文档
 - **THEN** 该节点使用强调色、浅色背景或左侧标记显示选中状态，而不是整块高饱和填充
 
+### Requirement: Sidebar scroll survives navigation
+
+目录模式的文件树滚动位置 SHALL 在同一 root 的文档页面之间保持。通过文件树、跨文档链接或浏览器前进/后退导航后，MUST 恢复离开前的位置。首次打开某个 root、没有保存位置时 MAY 将当前文档滚动到可见区域。
+
+#### Scenario: Switch documents from the tree
+
+- **WHEN** 用户在文件树滚动到中间位置，然后点击另一篇文档
+- **THEN** 新页面的侧栏保持相同的滚动位置
+
+#### Scenario: Cross-document link
+
+- **WHEN** 用户阅读文档 A 时通过正文链接打开文档 B
+- **THEN** 文档 B 页面的侧栏保持文档 A 页面离开时的滚动位置
+
+#### Scenario: First open
+
+- **WHEN** 用户首次打开某个 root 的文档页面
+- **THEN** 文件树展开并显示当前文档节点，不需要恢复旧位置
+
 ## MODIFIED Requirements
 
 ### Requirement: Documents are presented as a file tree

@@ -26,6 +26,7 @@
 - [x] 4.2 实现 `reader.js` 的懒渲染树、展开状态 sessionStorage、当前路径高亮和跨页面恢复；补 JS/浏览器验证
 - [x] 4.3 实现源码模式跨页面保持、刷新重置；补浏览器验证
 - [x] 4.4 验证浏览器前进/后退、跨页锚点、TOC、主题、全宽、侧栏和信息面板
+- [x] 4.5 保持文件树滚动位置：在树链接点击、滚动和 pagehide 时保存，跨页面恢复；用浏览器验证
 
 ## 5. Application integration and confirmation dialog
 
