@@ -125,6 +125,7 @@ html[data-theme="graphite"] {
 }
 
 html {
+  background: var(--bg);
   scroll-behavior: smooth;
 }
 
@@ -1083,6 +1084,10 @@ body.source-mode .doc-section .source-view {
   #sidebar {
     transition: none;
   }
+}
+
+@view-transition {
+  navigation: auto;
 }
 
 @media print {

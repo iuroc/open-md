@@ -33,6 +33,17 @@ func buildSite(t *testing.T, dir, cache string) *Site {
 	return site
 }
 
+func TestReaderCSSEnablesViewTransitions(t *testing.T) {
+	for _, want := range []string{
+		"@view-transition",
+		"navigation: auto;",
+	} {
+		if !strings.Contains(readerCSS, want) {
+			t.Fatalf("reader.css missing %q", want)
+		}
+	}
+}
+
 func TestBuildDirSiteCreatesIndependentPages(t *testing.T) {
 	dir := t.TempDir()
 	cache := t.TempDir()
@@ -59,6 +70,12 @@ func TestBuildDirSiteCreatesIndependentPages(t *testing.T) {
 	}
 	if !strings.Contains(string(page), `href="reader.css"`) {
 		t.Fatal("shared reader.css not referenced")
+	}
+	if !strings.Contains(string(page), `name="color-scheme" content="light dark"`) {
+		t.Fatal("early color-scheme meta missing")
+	}
+	if !strings.Contains(string(page), "html { background: #fbfdff; }") {
+		t.Fatal("boot background missing")
 	}
 	if !strings.Contains(string(page), `src="tree.js"`) {
 		t.Fatal("shared tree.js not referenced")
