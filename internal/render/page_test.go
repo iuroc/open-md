@@ -658,6 +658,29 @@ func TestReaderCSSPrintUsesWhiteBackground(t *testing.T) {
 	}
 }
 
+func TestReaderCSSPrintOverridesStayScoped(t *testing.T) {
+	printStart := strings.Index(readerCSS, "@media print {")
+	if printStart < 0 {
+		t.Fatal("print media block missing")
+	}
+	screenCSS := readerCSS[:printStart]
+	for _, banned := range []string{
+		"--bg: #ffffff !important;",
+		"--bgColor-default: #ffffff !important;",
+		"--fgColor-default: #1f2328 !important;",
+		"color-scheme: light !important;",
+	} {
+		if strings.Contains(screenCSS, banned) {
+			t.Fatalf("print-only override leaked into screen styles: %q", banned)
+		}
+	}
+	for _, want := range []string{"beforeprint", "afterprint"} {
+		if strings.Contains(readerJS, want) {
+			t.Fatalf("print must not mutate runtime state via %q", want)
+		}
+	}
+}
+
 func TestReaderCSSSupportsSourceWrapSetting(t *testing.T) {
 	noWrap := readerCSSRule(t, "body.source-no-wrap .doc-section .source-code.chroma {")
 	for _, want := range []string{
