@@ -446,6 +446,10 @@ func TestReaderJSPersistsScrollPositions(t *testing.T) {
 		"var restored = restoreSidebarScroll();",
 		"scrollWindowTo",
 		"maxBefore",
+		"markClickHash",
+		"consumeClickHash",
+		"preserveScroll",
+		"restoreScroll",
 	} {
 		if !strings.Contains(readerJS, want) {
 			t.Fatalf("reader.js missing %q", want)

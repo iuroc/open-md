@@ -394,7 +394,7 @@
     html.style.scrollBehavior = previous;
   }
 
-  function showDoc(docID, anchor, updateHash) {
+  function showDoc(docID, anchor, updateHash, preserveScroll) {
     if (sections.length === 0) {
       return;
     }
@@ -444,7 +444,7 @@
     replaceTOC(section);
     applyChromaTheme();
 
-    if (!initialScrollRestore || anchor) {
+    if (!preserveScroll && (!initialScrollRestore || anchor)) {
       scrollToAnchor(section, anchor);
       window.requestAnimationFrame(function () {
         scrollToAnchor(section, anchor);
@@ -766,6 +766,7 @@
 
   var navGeneration = 0;
   var initialScrollRestore = true;
+  var clickHashes = {};
   var initialFile = "";
   var initialPageAnchor = "";
   var initialTreePath = "";
@@ -792,6 +793,19 @@
     }
     var path = window.location.pathname || "";
     return path.substring(path.lastIndexOf("/") + 1);
+  }
+
+  function markClickHash(hash) {
+    clickHashes[hash] = Date.now();
+  }
+
+  function consumeClickHash(hash) {
+    var stamp = clickHashes[hash];
+    if (stamp && Date.now() - stamp < 2000) {
+      delete clickHashes[hash];
+      return true;
+    }
+    return false;
   }
 
   function payloadHref(file) {
@@ -909,14 +923,14 @@
     }, 0);
   }
 
-  function replaceSections(page, anchor) {
+  function replaceSections(page, anchor, preserveScroll) {
     var content = document.getElementById("doc-content");
     if (!page || !page.sectionHTML || !content) {
       return false;
     }
     content.innerHTML = page.sectionHTML;
     sections = Array.prototype.slice.call(document.querySelectorAll(".doc-section"));
-    showDoc("doc", anchor, false);
+    showDoc("doc", anchor, false, preserveScroll);
     document.documentElement.classList.remove("openmd-hash-load");
     finishInitialReveal(!!anchor);
     return true;
@@ -939,7 +953,7 @@
     window.location.href = file + (anchor ? "#" + anchor : "");
   }
 
-  function loadSoftPage(file, anchor, treePath, generation) {
+  function loadSoftPage(file, anchor, treePath, generation, restoreScroll) {
     if (!file) {
       return;
     }
@@ -949,11 +963,18 @@
       if (generation !== navGeneration) {
         return;
       }
-      if (!replaceSections(page, anchor)) {
+      if (!replaceSections(page, anchor, restoreScroll && !anchor)) {
         fallback(file, anchor);
         return;
       }
       setActiveTree(treePath);
+      if (!treePath && page.relPath) {
+        activePath = page.relPath;
+        document.body.setAttribute("data-active-path", activePath);
+      }
+      if (restoreScroll && !anchor) {
+        restoreBodyScroll();
+      }
     };
     if (pages[payload]) {
       apply(pages[payload]);
@@ -986,16 +1007,17 @@
   }
 
   function showDocFromHash(hash) {
+    var restoreScroll = !consumeClickHash(hash);
     var info = parseDocHash(hash);
     if (!info) {
       if (!hash && initialFile) {
         var initialGeneration = ++navGeneration;
-        loadSoftPage(initialFile, initialPageAnchor, initialTreePath, initialGeneration);
+        loadSoftPage(initialFile, initialPageAnchor, initialTreePath, initialGeneration, restoreScroll && !initialPageAnchor);
       }
       return;
     }
     var generation = ++navGeneration;
-    loadSoftPage(info.file, info.anchor, treePathForFile(info.file), generation);
+    loadSoftPage(info.file, info.anchor, treePathForFile(info.file), generation, restoreScroll && !info.anchor);
   }
 
   window.addEventListener("hashchange", function () {
@@ -1032,6 +1054,7 @@
       return;
     }
     event.preventDefault();
+    saveBodyScroll();
     var parts = splitDocHref(href);
     var treePath = link.getAttribute("data-tree-path") || treePathForFile(parts.file);
     setActiveTree(treePath);
@@ -1039,6 +1062,7 @@
     if (parts.anchor) {
       hash += "&anchor=" + encodeURIComponent(parts.anchor);
     }
+    markClickHash(hash);
     window.location.hash = hash;
   }, true);
 
