@@ -301,10 +301,6 @@ func TestRenderPageViewModeMenuAndSourceBlocks(t *testing.T) {
 		`data-has-source="false"`,
 		`复制源码`,
 		`该文档没有可显示的源码`,
-		`id="source-wrap-toggle"`,
-		`role="switch"`,
-		`自动换行`,
-		`长行按阅读宽度折行`,
 		`<span class="gh"># A</span>`,
 	} {
 		if !strings.Contains(s, want) {
@@ -511,18 +507,15 @@ func TestReaderCSSSupportsSplitView(t *testing.T) {
 		"grid-row: 1;",
 		"overflow-y: auto;",
 		"border-right: 1px solid var(--border);",
+		"scrollbar-width: none;",
 	} {
 		if !strings.Contains(source, want) {
 			t.Fatalf("split source rule missing %q: %s", want, source)
 		}
 	}
-	hiddenScrollbar := readerCSSRule(t, "body.split-mode:not(.source-no-wrap) .doc-section .source-view {")
-	if !strings.Contains(hiddenScrollbar, "scrollbar-width: none;") {
-		t.Fatalf("wrapped split source must hide its scrollbar: %s", hiddenScrollbar)
-	}
-	scrollbar := readerCSSRule(t, "body.split-mode:not(.source-no-wrap) .doc-section .source-view::-webkit-scrollbar {")
+	scrollbar := readerCSSRule(t, "body.split-mode .doc-section .source-view::-webkit-scrollbar {")
 	if !strings.Contains(scrollbar, "display: none;") {
-		t.Fatalf("wrapped split source scrollbar must be hidden: %s", scrollbar)
+		t.Fatalf("split source scrollbar must be hidden: %s", scrollbar)
 	}
 	for _, banned := range []string{"background: var(--bg-subtle);", "border-bottom"} {
 		if strings.Contains(source, banned) {
@@ -688,38 +681,6 @@ func TestReaderCSSPrintOverridesStayScoped(t *testing.T) {
 	}
 }
 
-func TestReaderCSSSupportsSourceWrapSetting(t *testing.T) {
-	noWrap := readerCSSRule(t, "body.source-no-wrap .doc-section .source-code.chroma {")
-	for _, want := range []string{
-		"white-space: pre;",
-		"overflow-wrap: normal;",
-		"word-break: normal;",
-		"overflow-x: visible;",
-	} {
-		if !strings.Contains(noWrap, want) {
-			t.Fatalf("no-wrap source rule missing %q: %s", want, noWrap)
-		}
-	}
-	splitNoWrap := readerCSSRule(t, "body.split-mode.source-no-wrap .doc-section .source-view {")
-	if !strings.Contains(splitNoWrap, "overflow-x: auto;") {
-		t.Fatalf("split no-wrap source must scroll horizontally: %s", splitNoWrap)
-	}
-	horizontal := readerCSSRule(t, "body.split-mode.source-no-wrap .doc-section .source-view::-webkit-scrollbar {")
-	if !strings.Contains(horizontal, "display: block;") {
-		t.Fatalf("split no-wrap source must show a horizontal scrollbar: %s", horizontal)
-	}
-	vertical := readerCSSRule(t, "body.split-mode.source-no-wrap .doc-section .source-view::-webkit-scrollbar:vertical {")
-	if !strings.Contains(vertical, "display: none;") {
-		t.Fatalf("split no-wrap source must keep the vertical scrollbar hidden: %s", vertical)
-	}
-	code := readerCSSRule(t, "body.split-mode.source-no-wrap .doc-section .source-code.chroma {")
-	for _, want := range []string{"width: max-content;", "min-width: 100%;"} {
-		if !strings.Contains(code, want) {
-			t.Fatalf("split no-wrap code rule missing %q: %s", want, code)
-		}
-	}
-}
-
 func TestReaderCSSHidesWidthToggleInSplit(t *testing.T) {
 	rule := readerCSSRule(t, "body.split-mode #width-toggle {")
 	if !strings.Contains(rule, "display: none;") {
@@ -727,18 +688,33 @@ func TestReaderCSSHidesWidthToggleInSplit(t *testing.T) {
 	}
 }
 
-func TestReaderJSSupportsSourceWrapSetting(t *testing.T) {
-	for _, want := range []string{
-		`"source-wrap-toggle"`,
-		"openmd-source-wrap",
+func TestSourceViewAlwaysWraps(t *testing.T) {
+	for _, banned := range []string{
+		"source-wrap-toggle",
 		"source-no-wrap",
-		"applySourceWrap",
-		"sourceWrapEnabled",
-		"writePref(sourceWrapKey",
-		"aria-checked",
+		"openmd-source-wrap",
+		"setting-switch",
 	} {
-		if !strings.Contains(readerJS, want) {
-			t.Fatalf("reader.js missing %q", want)
+		for name, source := range map[string]string{
+			"docpage.html": docPageTemplateSource,
+			"page.html":    pageTemplateSource,
+			"reader.js":    readerJS,
+			"reader.css":   readerCSS,
+		} {
+			if strings.Contains(source, banned) {
+				t.Fatalf("%s still contains removed source wrap feature %q", name, banned)
+			}
+		}
+	}
+	base := readerCSSRule(t, ".doc-section .source-code.chroma {")
+	for _, want := range []string{
+		"white-space: pre-wrap;",
+		"overflow-wrap: anywhere;",
+		"word-break: break-all;",
+		"overflow-x: hidden;",
+	} {
+		if !strings.Contains(base, want) {
+			t.Fatalf("source code rule missing always-wrap property %q: %s", want, base)
 		}
 	}
 }

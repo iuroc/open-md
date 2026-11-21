@@ -30,8 +30,6 @@
   var viewMode = "render";
   var modeMenuOpen = false;
   var pendingSyncs = [];
-  var sourceWrapToggle = document.getElementById("source-wrap-toggle");
-  var sourceWrapKey = "openmd-source-wrap";
   var sidebarBackdrop = document.getElementById("sidebar-backdrop");
   var sidebarClose = document.getElementById("sidebar-close");
   var settingsButton = document.getElementById("settings-button");
@@ -844,26 +842,6 @@
     applyMode(storedMode(), false);
   }
 
-  function sourceWrapEnabled() {
-    return !document.body.classList.contains("source-no-wrap");
-  }
-
-  function applySourceWrap(enabled, persist) {
-    document.body.classList.toggle("source-no-wrap", !enabled);
-    if (sourceWrapToggle) {
-      sourceWrapToggle.setAttribute("aria-checked", enabled ? "true" : "false");
-      var desc = sourceWrapToggle.querySelector(".setting-switch-desc");
-      if (desc) {
-        desc.textContent = enabled
-          ? "长行按阅读宽度折行"
-          : "长行保持原始宽度，可横向滚动";
-      }
-    }
-    if (persist) {
-      writePref(sourceWrapKey, enabled ? "on" : "off");
-    }
-  }
-
   function initDocPage() {
     var hash = window.location.hash;
     var docHash = parseDocHash(hash);
@@ -1389,12 +1367,6 @@
     });
   }
 
-  if (sourceWrapToggle) {
-    sourceWrapToggle.addEventListener("click", function () {
-      applySourceWrap(!sourceWrapEnabled(), true);
-    });
-  }
-
   if (settingsPanel) {
     settingsPanel.addEventListener("click", function (event) {
       var target = event.target;
@@ -1484,7 +1456,6 @@
   syncMenuButton();
   setSettingsOpen(false);
   setModeMenuOpen(false, false);
-  applySourceWrap(readPref(sourceWrapKey) !== "off", false);
   restoreViewMode();
 
   var storedTheme = readPref("openmd-theme");
