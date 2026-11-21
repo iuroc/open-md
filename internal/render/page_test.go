@@ -436,6 +436,15 @@ func TestDocPageHidesUntilReady(t *testing.T) {
 	}
 }
 
+func TestReaderJSRestoresSourceModeOnReload(t *testing.T) {
+	if !strings.Contains(readerJS, `sessionStorage.getItem(sourceStorageKey) === "1"`) {
+		t.Fatal("source mode must be restored from session storage")
+	}
+	if strings.Contains(readerJS, `navigationType() === "reload"`) {
+		t.Fatal("reload must not clear source mode")
+	}
+}
+
 func TestReaderJSPersistsScrollPositions(t *testing.T) {
 	for _, want := range []string{
 		"openmd-scroll:",

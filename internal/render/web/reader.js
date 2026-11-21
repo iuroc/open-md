@@ -655,15 +655,6 @@
     });
   }
 
-  function navigationType() {
-    try {
-      var entries = performance.getEntriesByType("navigation");
-      return entries.length ? entries[0].type : "";
-    } catch (err) {
-      return "";
-    }
-  }
-
   function persistSourceMode(active) {
     try {
       if (active) {
@@ -676,10 +667,6 @@
 
   function restoreSourceMode() {
     if (!isDocPage) {
-      return;
-    }
-    if (navigationType() === "reload") {
-      persistSourceMode(false);
       return;
     }
     try {
