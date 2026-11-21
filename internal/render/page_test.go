@@ -636,12 +636,19 @@ func TestReaderCSSPrintUsesWhiteBackground(t *testing.T) {
 		"background-color: #ffffff !important;",
 		"color-scheme: light !important;",
 		"--bgColor-default: #ffffff !important;",
-		"--bgColor-muted: #ffffff !important;",
+		"--bgColor-muted: #f6f8fa !important;",
+		"--bgColor-neutral-muted: #818b981f !important;",
 		"--fgColor-default: #1f2328 !important;",
 	} {
 		if !strings.Contains(printCSS, want) {
 			t.Fatalf("print block missing white background rule %q", want)
 		}
+	}
+	if strings.Contains(printCSS, "background-color: transparent !important;") {
+		t.Fatal("print must keep content backgrounds instead of forcing them transparent")
+	}
+	if strings.Contains(printCSS, "--bgColor-muted: #ffffff !important;") {
+		t.Fatal("print must not flatten content backgrounds to pure white")
 	}
 	toolbar := cssRule(t, printCSS, ".source-toolbar {")
 	if !strings.Contains(toolbar, "display: none !important;") {

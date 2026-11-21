@@ -78,17 +78,17 @@
 
 ### Requirement: Printed pages use a white background
 
-打印页面 SHALL 使用纯白色背景，MUST NOT 保留当前配色或深色模式的页面底色。打印文本、代码和表格 SHALL 使用适合白底的可读颜色。
+打印页面的底色 SHALL 为纯白色，MUST NOT 保留当前配色的页面底色。代码块、表格、行内代码等内容背景 SHALL 保留浅色主题原本的背景色，MUST NOT 被强制改为纯白。打印文本 SHALL 使用适合白底的可读颜色。
 
-#### Scenario: Print from a light theme
+#### Scenario: Print page canvas is white
 
-- **WHEN** 用户使用浅色配色执行打印
-- **THEN** 打印结果背景为纯白色
+- **WHEN** 用户执行打印
+- **THEN** 如果当前位于深色模式，打印结果仍使用纯白页面底色和深色正文
 
-#### Scenario: Print from a dark theme
+#### Scenario: Content backgrounds are preserved
 
-- **WHEN** 用户使用深色模式执行打印
-- **THEN** 打印结果背景仍为纯白色，正文和代码保持深色可读
+- **WHEN** 打印包含代码块或表格的文档
+- **THEN** 页面底色为纯白色，同时代码块和表格保留浅色主题的背景色
 
 ### Requirement: Source toolbar is not printed
 
