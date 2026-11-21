@@ -2,13 +2,21 @@ package render
 
 import (
 	"errors"
+	"html"
 	"html/template"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
 	"github.com/alecthomas/chroma/v2"
 )
+
+var htmlTagPattern = regexp.MustCompile(`<[^>]+>`)
+
+func stripHTMLTags(s string) string {
+	return html.UnescapeString(htmlTagPattern.ReplaceAllString(s, ""))
+}
 
 type failingLexer struct{}
 
@@ -36,6 +44,17 @@ func TestHighlightSourceProducesTokenHTML(t *testing.T) {
 		if !strings.Contains(got, want) {
 			t.Fatalf("missing %q in %q", want, got)
 		}
+	}
+}
+
+func TestHighlightSourceHighlightsIndentedFence(t *testing.T) {
+	source := []byte("- item\n\n  ```go\n  func main() {}\n  ```\n")
+	got := string(highlightSource(source))
+	if !strings.Contains(got, `class="kd"`) && !strings.Contains(got, `class="nf"`) {
+		t.Fatalf("indented Go fence is not highlighted: %q", got)
+	}
+	if plain := stripHTMLTags(got); plain != string(source) {
+		t.Fatalf("source text changed:\n got %q\nwant %q", plain, source)
 	}
 }
 

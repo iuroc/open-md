@@ -76,11 +76,25 @@ func newMarkdown(docID string) goldmark.Markdown {
 // template owns the surrounding <pre>, so the output only contains token
 // spans and escaped text.
 func highlightSource(source []byte) template.HTML {
+	if len(source) == 0 {
+		return template.HTML("")
+	}
 	lexer := lexers.Get("markdown")
 	if lexer != nil {
 		lexer = chroma.Coalesce(lexer)
 	}
-	return highlightSourceWith(lexer, source)
+	if lexer == nil {
+		return escapedSource(source)
+	}
+	normalized, indents := normalizeIndentedFences(source)
+	highlighted, ok := highlightTokens(lexer, []byte(normalized))
+	if !ok {
+		return escapedSource(source)
+	}
+	if indents == nil {
+		return highlighted
+	}
+	return reindentSourceHTML(highlighted, indents)
 }
 
 // sourceHighlighter is replaceable in tests to exercise the fallback path.
@@ -90,15 +104,20 @@ func highlightSourceWith(lexer chroma.Lexer, source []byte) template.HTML {
 	if len(source) == 0 {
 		return template.HTML("")
 	}
-	fallback := func() template.HTML {
-		return template.HTML(stdhtml.EscapeString(string(source)))
-	}
 	if lexer == nil {
-		return fallback()
+		return escapedSource(source)
 	}
+	highlighted, ok := highlightTokens(lexer, source)
+	if !ok {
+		return escapedSource(source)
+	}
+	return highlighted
+}
+
+func highlightTokens(lexer chroma.Lexer, source []byte) (template.HTML, bool) {
 	iterator, err := lexer.Tokenise(nil, string(source))
 	if err != nil || iterator == nil {
-		return fallback()
+		return "", false
 	}
 	formatter := chromahtml.New(
 		chromahtml.WithClasses(true),
@@ -107,9 +126,105 @@ func highlightSourceWith(lexer chroma.Lexer, source []byte) template.HTML {
 	)
 	var buf bytes.Buffer
 	if err := formatter.Format(&buf, styles.Get("github"), iterator); err != nil {
-		return fallback()
+		return "", false
 	}
-	return template.HTML(buf.String())
+	return template.HTML(buf.String()), true
+}
+
+func escapedSource(source []byte) template.HTML {
+	return template.HTML(stdhtml.EscapeString(string(source)))
+}
+
+// normalizeIndentedFences moves fenced code blocks that start with leading
+// whitespace (common inside list items) to column zero before tokenising.
+// Chroma's Markdown lexer only delegates fences at column zero; without this,
+// indented fences are treated as inline backtick strings and lose language
+// highlighting. The returned slice records the removed prefix per line so the
+// rendered HTML can restore the original source text exactly.
+func normalizeIndentedFences(source []byte) (string, []string) {
+	text := string(source)
+	lines := strings.Split(text, "\n")
+	indents := make([]string, len(lines))
+	changed := false
+
+	for i := 0; i < len(lines); i++ {
+		body, _ := splitCR(lines[i])
+		indent := leadingWhitespace(body)
+		if indent == "" {
+			continue
+		}
+		if !openingFence(body[len(indent):]) {
+			continue
+		}
+		end := -1
+		for j := i + 1; j < len(lines); j++ {
+			candidate, _ := splitCR(lines[j])
+			if strings.TrimLeft(candidate, " \t") == "```" {
+				end = j
+				break
+			}
+		}
+		if end < 0 {
+			continue
+		}
+		for k := i; k <= end; k++ {
+			lineBody, lineCR := splitCR(lines[k])
+			removed := stripFenceIndent(lineBody, indent)
+			lines[k] = lineBody[len(removed):] + lineCR
+			indents[k] = removed
+		}
+		changed = true
+		i = end
+	}
+
+	if !changed {
+		return text, nil
+	}
+	return strings.Join(lines, "\n"), indents
+}
+
+func reindentSourceHTML(highlighted template.HTML, indents []string) template.HTML {
+	lines := strings.Split(string(highlighted), "\n")
+	for i := range lines {
+		if i < len(indents) && indents[i] != "" {
+			lines[i] = indents[i] + lines[i]
+		}
+	}
+	return template.HTML(strings.Join(lines, "\n"))
+}
+
+func splitCR(line string) (string, string) {
+	if strings.HasSuffix(line, "\r") {
+		return line[:len(line)-1], "\r"
+	}
+	return line, ""
+}
+
+func leadingWhitespace(line string) string {
+	n := 0
+	for n < len(line) && (line[n] == ' ' || line[n] == '\t') {
+		n++
+	}
+	return line[:n]
+}
+
+func openingFence(line string) bool {
+	if !strings.HasPrefix(line, "```") || strings.HasPrefix(line, "````") {
+		return false
+	}
+	info := line[3:]
+	return info == "" || (info != "" && !strings.ContainsAny(info, "`"))
+}
+
+func stripFenceIndent(line, indent string) string {
+	if strings.HasPrefix(line, indent) {
+		return indent
+	}
+	n := 0
+	for n < len(line) && n < len(indent) && line[n] == ' ' {
+		n++
+	}
+	return line[:n]
 }
 
 func RenderMarkdown(source []byte, sourcePath string, opts RenderOptions) (*Document, error) {
