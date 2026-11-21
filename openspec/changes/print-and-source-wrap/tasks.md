@@ -28,4 +28,4 @@
 
 - [x] 5.1 运行 `go test ./...` 和 `go vet ./...`，确认全部通过
 - [x] 5.2 用临时站点在 headless Edge 中验证：阅读打印、源码打印、双视图打印均符合预期，关闭换行后双视图出现横向滚动条
-- [ ] 5.3 按仓库约定提交改动，然后执行 `printf '\n' | cmd.exe //c build.bat`，确认 `OpenMD.exe` 和 `source.git.bundle` 构建成功
+- [x] 5.3 按仓库约定提交改动，然后执行 `printf '\n' | cmd.exe //c build.bat`，确认 `OpenMD.exe` 和 `source.git.bundle` 构建成功
