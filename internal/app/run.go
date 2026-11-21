@@ -35,33 +35,36 @@ func (a *App) runInstaller() error {
 	if err != nil {
 		return fmt.Errorf("无法确定当前程序路径: %w", err)
 	}
-	installedPath := a.Installer.InstalledExe()
-	installed := fileExists(installedPath)
-	choice := a.Dialog.Installer(installedPath, installed)
-	switch choice {
-	case ui.ChoiceInstall:
+	if !fileExists(a.Installer.InstalledExe()) {
 		if err := a.Installer.Install(currentExe); err != nil {
 			return err
 		}
-		a.Dialog.Info("安装完成。\n\n现在可以右键 Markdown 文件，选择“用 OpenMD 阅读”。")
+		if a.Dialog.Installer(ui.InstallAfterInstall) == ui.ChoiceUninstall {
+			return a.uninstall(currentExe)
+		}
 		return nil
+	}
+	switch a.Dialog.Installer(ui.InstallManage) {
+	case ui.ChoiceInstall:
+		return a.Installer.Install(currentExe)
 	case ui.ChoiceUninstall:
-		result, err := a.Installer.Uninstall(currentExe)
-		if err != nil {
-			return err
-		}
-		if result.NeedsHelper {
-			a.Dialog.Info("卸载完成。程序文件将在退出后清理。")
-			if err := a.Installer.SpawnUninstallHelper(currentExe); err != nil {
-				return fmt.Errorf("启动卸载清理程序失败: %w", err)
-			}
-			return nil
-		}
-		a.Dialog.Info("卸载完成。")
-		return nil
+		return a.uninstall(currentExe)
 	default:
 		return nil
 	}
+}
+
+func (a *App) uninstall(currentExe string) error {
+	result, err := a.Installer.Uninstall(currentExe)
+	if err != nil {
+		return err
+	}
+	if result.NeedsHelper {
+		if err := a.Installer.SpawnUninstallHelper(currentExe); err != nil {
+			return fmt.Errorf("启动卸载清理程序失败: %w", err)
+		}
+	}
+	return nil
 }
 
 func (a *App) openPage(path string, isDir bool) error {
@@ -195,7 +198,6 @@ func handleInternal(args []string, installer *install.Installer, dialog ui.Dialo
 			dialog.Error(err.Error())
 			return true
 		}
-		dialog.Info("安装完成。")
 		return true
 	case "--uninstall":
 		if len(args) != 1 {
@@ -213,14 +215,10 @@ func handleInternal(args []string, installer *install.Installer, dialog ui.Dialo
 			return true
 		}
 		if result.NeedsHelper {
-			dialog.Info("卸载完成。程序文件将在退出后清理。")
 			if err := installer.SpawnUninstallHelper(exe); err != nil {
 				dialog.Error(err.Error())
-				return true
 			}
-			return true
 		}
-		dialog.Info("卸载完成。")
 		return true
 	default:
 		return false

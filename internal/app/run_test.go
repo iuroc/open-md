@@ -22,28 +22,21 @@ func (f *fakeOpener) Open(path string) error {
 }
 
 type fakeDialog struct {
-	choice      ui.Choice
-	load        ui.LoadDecision
-	confirmSeen []string
-	infos       []string
-	errors      []string
-	events      *[]string
+	choice       ui.Choice
+	load         ui.LoadDecision
+	confirmSeen  []string
+	errors       []string
+	installModes []ui.InstallMode
 }
 
-func (f *fakeDialog) Installer(installedPath string, installed bool) ui.Choice {
+func (f *fakeDialog) Installer(mode ui.InstallMode) ui.Choice {
+	f.installModes = append(f.installModes, mode)
 	return f.choice
 }
 
 func (f *fakeDialog) ConfirmLoad(message string) ui.LoadDecision {
 	f.confirmSeen = append(f.confirmSeen, message)
 	return f.load
-}
-
-func (f *fakeDialog) Info(message string) {
-	f.infos = append(f.infos, message)
-	if f.events != nil {
-		*f.events = append(*f.events, "info")
-	}
 }
 
 func (f *fakeDialog) Error(message string) {
@@ -57,7 +50,6 @@ type fakeInstaller struct {
 	uninstallCalled bool
 	helperCalled    bool
 	uninstallResult install.UninstallResult
-	events          *[]string
 }
 
 func (f *fakeInstaller) Install(sourceExe string) error {
@@ -73,9 +65,6 @@ func (f *fakeInstaller) Uninstall(sourceExe string) (install.UninstallResult, er
 
 func (f *fakeInstaller) SpawnUninstallHelper(sourceExe string) error {
 	f.helperCalled = true
-	if f.events != nil {
-		*f.events = append(*f.events, "spawn")
-	}
 	return nil
 }
 
@@ -171,49 +160,85 @@ func TestConfirmLoadMapsDialogChoice(t *testing.T) {
 	}
 }
 
-func TestRunInstallChoiceCallsInstaller(t *testing.T) {
-	fi := &fakeInstaller{installedExe: `C:\Local\OpenMD.exe`}
-	d := &fakeDialog{choice: ui.ChoiceInstall}
-	a := &App{
-		Dialog:     d,
-		Installer:  fi,
-		Temp:       tempdir.New(t.TempDir()),
-		Opener:     &fakeOpener{},
-		Executable: func() (string, error) { return `C:\Downloads\OpenMD.exe`, nil },
+func TestRunFreshInstallInstallsThenAsksAfterInstall(t *testing.T) {
+	installed := filepath.Join(t.TempDir(), "OpenMD.exe")
+	fi := &fakeInstaller{installedExe: installed}
+	d := &fakeDialog{choice: ui.ChoiceCancel}
+	a := &App{Dialog: d, Installer: fi, Executable: func() (string, error) { return `C:\Downloads\OpenMD.exe`, nil }}
+	if err := a.Run(Invocation{Mode: ModeInstall}); err != nil {
+		t.Fatal(err)
 	}
+	if !fi.installCalled || fi.installSource != `C:\Downloads\OpenMD.exe` {
+		t.Fatalf("install = %v %q", fi.installCalled, fi.installSource)
+	}
+	if len(d.installModes) != 1 || d.installModes[0] != ui.InstallAfterInstall {
+		t.Fatalf("modes = %#v", d.installModes)
+	}
+	if fi.uninstallCalled {
+		t.Fatal("uninstall called")
+	}
+}
+
+func TestRunFreshInstallCanUninstallAfterInstall(t *testing.T) {
+	installed := filepath.Join(t.TempDir(), "OpenMD.exe")
+	fi := &fakeInstaller{installedExe: installed}
+	d := &fakeDialog{choice: ui.ChoiceUninstall}
+	a := &App{Dialog: d, Installer: fi, Executable: func() (string, error) { return `C:\Downloads\OpenMD.exe`, nil }}
+	if err := a.Run(Invocation{Mode: ModeInstall}); err != nil {
+		t.Fatal(err)
+	}
+	if !fi.installCalled || !fi.uninstallCalled {
+		t.Fatalf("install=%v uninstall=%v", fi.installCalled, fi.uninstallCalled)
+	}
+}
+
+func TestRunInstalledAsksManageBeforeAction(t *testing.T) {
+	installed := filepath.Join(t.TempDir(), "OpenMD.exe")
+	if err := os.WriteFile(installed, []byte("x"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	fi := &fakeInstaller{installedExe: installed}
+	d := &fakeDialog{choice: ui.ChoiceCancel}
+	a := &App{Dialog: d, Installer: fi, Executable: func() (string, error) { return installed, nil }}
+	if err := a.Run(Invocation{Mode: ModeInstall}); err != nil {
+		t.Fatal(err)
+	}
+	if len(d.installModes) != 1 || d.installModes[0] != ui.InstallManage {
+		t.Fatalf("modes = %#v", d.installModes)
+	}
+	if fi.installCalled || fi.uninstallCalled {
+		t.Fatalf("install=%v uninstall=%v", fi.installCalled, fi.uninstallCalled)
+	}
+}
+
+func TestRunInstalledOverwriteInstalls(t *testing.T) {
+	installed := filepath.Join(t.TempDir(), "OpenMD.exe")
+	if err := os.WriteFile(installed, []byte("x"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	fi := &fakeInstaller{installedExe: installed}
+	d := &fakeDialog{choice: ui.ChoiceInstall}
+	a := &App{Dialog: d, Installer: fi, Executable: func() (string, error) { return `C:\Downloads\OpenMD.exe`, nil }}
 	if err := a.Run(Invocation{Mode: ModeInstall}); err != nil {
 		t.Fatal(err)
 	}
 	if !fi.installCalled {
 		t.Fatal("install not called")
 	}
-	if fi.installSource != `C:\Downloads\OpenMD.exe` {
-		t.Fatalf("install source = %q", fi.installSource)
-	}
 }
 
-func TestRunUninstallChoiceSpawnsHelperWhenNeeded(t *testing.T) {
-	events := []string{}
-	fi := &fakeInstaller{
-		installedExe:    `C:\Local\OpenMD.exe`,
-		uninstallResult: install.UninstallResult{NeedsHelper: true},
-		events:          &events,
+func TestRunInstalledUninstallSpawnsHelperWhenNeeded(t *testing.T) {
+	installed := filepath.Join(t.TempDir(), "OpenMD.exe")
+	if err := os.WriteFile(installed, []byte("x"), 0644); err != nil {
+		t.Fatal(err)
 	}
-	d := &fakeDialog{choice: ui.ChoiceUninstall, events: &events}
-	a := &App{
-		Dialog:     d,
-		Installer:  fi,
-		Temp:       tempdir.New(t.TempDir()),
-		Opener:     &fakeOpener{},
-		Executable: func() (string, error) { return `C:\Local\OpenMD.exe`, nil },
-	}
+	fi := &fakeInstaller{installedExe: installed, uninstallResult: install.UninstallResult{NeedsHelper: true}}
+	d := &fakeDialog{choice: ui.ChoiceUninstall}
+	a := &App{Dialog: d, Installer: fi, Executable: func() (string, error) { return installed, nil }}
 	if err := a.Run(Invocation{Mode: ModeInstall}); err != nil {
 		t.Fatal(err)
 	}
 	if !fi.uninstallCalled || !fi.helperCalled {
 		t.Fatalf("uninstall=%v helper=%v", fi.uninstallCalled, fi.helperCalled)
-	}
-	if len(events) != 2 || events[0] != "info" || events[1] != "spawn" {
-		t.Fatalf("events = %#v, want info then spawn", events)
 	}
 }

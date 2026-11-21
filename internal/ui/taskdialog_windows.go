@@ -26,10 +26,10 @@ const (
 	idiError       = 32513
 	idiInformation = 32516
 
-	mbOK           = 0x00000001
-	mbYesNoCancel  = 0x00000003
-	mbYesNo        = 0x00000004
-	mbIconError    = 0x00000010
+	mbOK          = 0x00000001
+	mbYesNoCancel = 0x00000003
+	mbYesNo       = 0x00000004
+	mbIconError   = 0x00000010
 )
 
 var (
