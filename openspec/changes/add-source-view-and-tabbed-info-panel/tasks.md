@@ -9,7 +9,7 @@
 ## 2. 源码视图界面与交互
 
 - [x] 2.1 修改 `internal/render/web/page.html`：增加顶栏源码切换按钮、`.doc-rendered` 包裹、`.source-view` 工具栏、`.source-code` 和空状态，并在 section 上输出 `data-has-source`；补充 `RenderPage` 结构测试，运行 `go test ./internal/render -run TestRenderPageSource -count=1` 通过
-- [x] 2.2 在 `internal/render/web/reader.css` 增加源码卡片、吸顶工具栏、等宽字体、`pre-wrap` 自动换行、Chroma 背景覆盖和焦点样式；生成带长行、front matter 和代码块的 fixture 页面，用 Chrome headless 截图确认换行和明暗样式
+- [x] 2.2 在 `internal/render/web/reader.css` 让源码视图与正文同列排版：无外层卡片、无边框工具栏、等宽字体、`pre-wrap` 自动换行、透明 Chroma 背景和焦点样式；生成带长行、front matter 和代码块的 fixture 页面，用 Chrome headless 截图确认换行和明暗样式
 - [x] 2.3 在 `internal/render/web/reader.js` 实现源码模式切换、`aria-pressed` 同步、文档切换时保持模式、切换时保留滚动位置；在浏览器中切换长文档并确认滚动位置和按钮状态
 - [x] 2.4 实现“复制源码”：从当前 `.source-code` 读取 `textContent`，优先 Clipboard API，失败回退现有 textarea 方案，显示“已复制 / 复制失败 / 没有可复制的源码”；在浏览器中复制含 front matter 的文档并核对剪贴板，空文件确认提示
 - [x] 2.5 实现源码内 `Ctrl/Cmd + A` 只选中源码，以及点击大纲时先退出源码模式；在浏览器中分别验证源码内全选、页面其他位置全选和大纲跳转

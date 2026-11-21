@@ -110,6 +110,10 @@ formatter := chromahtml.New(
 
 `.doc-rendered` 只是显示开关，不改变 `markdown-body` 作用域；现有标题锚点、脚注和链接样式仍由 section 上的 `markdown-body` 控制。
 
+### 源码视图与正文同列排版
+
+源码视图不额外渲染卡片。`.source-toolbar` 只保留无边框的一行元信息，`.source-code` 去掉边框、圆角、背景和内边距，直接落在 `.doc-section` 的阅读列里；字号和行高与正文一致（16px / 1.5），字体保持等宽，Chroma 语法高亮保留。
+
 ### 复制从源码 DOM 读取，不额外嵌入原始文本
 
 复制按钮读取当前 section 中 `.source-code` 的 `textContent`。软件换行只影响显示，不会在文本节点中插入换行，所以复制结果保持原始段落和代码行结构。

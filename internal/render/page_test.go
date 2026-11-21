@@ -338,6 +338,40 @@ func TestRenderPageDirectoryUsesSidebarTabs(t *testing.T) {
 	}
 }
 
+func TestReaderCSSSourceHasNoOuterCard(t *testing.T) {
+	rule := readerCSSRule(t, ".doc-section .source-code.chroma {")
+	for _, want := range []string{
+		"padding: 0;",
+		"border: 0;",
+		"border-radius: 0;",
+		"background-color: transparent;",
+		"color: var(--fg);",
+	} {
+		if !strings.Contains(rule, want) {
+			t.Fatalf("source code rule missing %q: %s", want, rule)
+		}
+	}
+	toolbar := readerCSSRule(t, ".source-toolbar {")
+	for _, banned := range []string{"border", "background", "position: sticky"} {
+		if strings.Contains(toolbar, banned) {
+			t.Fatalf("source toolbar must stay borderless and static, found %q: %s", banned, toolbar)
+		}
+	}
+}
+
+func readerCSSRule(t *testing.T, selector string) string {
+	t.Helper()
+	start := strings.Index(readerCSS, selector)
+	if start < 0 {
+		t.Fatalf("CSS rule %q missing", selector)
+	}
+	end := strings.Index(readerCSS[start:], "}")
+	if end < 0 {
+		t.Fatalf("CSS rule %q has no closing brace", selector)
+	}
+	return readerCSS[start : start+end]
+}
+
 func TestReaderCSSSourceUsesBodyFontSize(t *testing.T) {
 	start := strings.Index(readerCSS, ".doc-section .source-code.chroma {")
 	if start < 0 {
