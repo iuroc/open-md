@@ -21,69 +21,6 @@
 - 临时 HTML 写入安装目录下的 `openmd-temp`，启动浏览器后程序立即退出。
 - 无 HTTP 服务、无常驻后台进程、无浏览器内编辑。
 
-## 构建
-
-需要 Go 1.26+，在项目根目录执行：
-
-```bash
-go test ./...
-go build -trimpath -ldflags "-s -w -H=windowsgui" -o OpenMD.exe .
-```
-
-也可以直接双击 `build.bat`：自动运行测试、注入版本号和构建时间、构建 `OpenMD.exe`，并生成 `source.git.bundle`。
-
-只想要源码包时，双击 `bundle.bat` 即可。
-
-产物是单个 `OpenMD.exe`。手动执行上面的 `go build` 时页面会显示“开发版”；用 `build.bat` 构建才会写入正式版本号和构建时间。
-
-## 持续集成与发布
-
-GitHub Actions 工作流见 `.github/workflows/build.yml`：
-
-- Pull Request：只运行 `go vet ./...` 和 `go test ./... -count=1`。
-- push 到 `main`：只运行测试，不构建。
-- push `v*` 标签：测试通过后构建并创建 GitHub Release，附加 `OpenMD.exe` 和 `OpenMD.exe.sha256`，同时上传 workflow artifact。
-- 也可以在 Actions 页面手动触发构建（workflow_dispatch），产物作为 workflow artifact 保留 14 天。
-
-版本号规则：tag 构建去掉前缀 `v` 作为版本号；手动触发的构建使用 `yyyy.MM.dd-<run_number>`。`build.bat` 会识别外部传入的 `BUILD_VERSION`、`BUILD_TIME`；设置 `CI=true` 时跳过 `source.git.bundle` 和 `pause`，设置 `OPENMD_SKIP_TESTS=true` 时跳过测试（CI 中测试已由前一个 job 完成）。
-
-发布正式版本：
-
-```bash
-git tag v2026.11.18
-git push origin v2026.11.18
-```
-
-私有仓库的 Actions 和 Release 附件都需要有权限的账号访问；Windows runner 按 2 倍分钟计费。
-
-## 阅读模式
-
-- 点击顶栏的阅读模式按钮展开下拉菜单，可在“阅读”“源码”“双视图”之间切换。
-- 双视图左侧显示源码、右侧显示正文，两侧各自滚动并保持同步；窗口宽度不足 900px 时自动回退为阅读视图。
-- 双视图下顶栏的宽度模式按钮会隐藏，因为它对分栏布局没有作用；切回阅读/源码后恢复显示，全宽偏好保留。
-- 通过文件树或跨文档链接打开另一篇时保持当前模式，刷新页面也会恢复上次选择的模式。
-- 源码视图显示原始 Markdown，包括文档开头的 front matter，并按 Markdown 语法高亮。
-- 围栏代码块按语言高亮；列表项里缩进的围栏同样支持。
-- 源码视图始终自动换行，长行按阅读宽度折行，超长单词也会强制断开，不产生横向滚动。
-- 点击“复制源码”可复制当前文档的完整源码；焦点在源码区域时按 `Ctrl/Cmd + A` 只选中源码。
-- 点击侧栏大纲会自动回到阅读视图，并跳到对应标题；双视图中则直接定位右侧正文和左侧源码。
-
-## 打印
-
-- 阅读模式打印渲染正文，源码模式打印源码，双视图只打印渲染正文。
-- 打印页面的底色强制为纯白，避免 PDF 白色页边距与内容底色不一致；代码块、表格等内容的浅色背景保持不变。
-- 打印时代码块临时自动换行，表格收缩到页面宽度并允许表头和单元格换行，不会出现横向滚动条或被裁切。
-- 源码模式打印会隐藏源码工具栏（文件名和复制按钮），只打印源码正文。
-- 源码打印时自动换行，不产生横向滚动。
-
-## 版本与更新
-
-- 顶栏右侧的圆圈 + i 按钮打开“信息与设置”面板。
-- “文件”Tab 显示当前文档的完整路径和所在目录，并支持复制路径；“设置”Tab 提供配色；“关于”Tab 显示完整版本号、构建时间和发布页。
-- “关于”Tab 中的发布页会打开 GitHub Releases；最新版本的构建时间晚于页面显示的构建时间，就说明有更新。
-- 发布页链接只在正式构建的“关于”Tab 中出现；开发构建不会展示。
-- 页面加载时不会访问 GitHub，也不做自动更新检查。
-
 ## 安装
 
 1. 双击 `OpenMD.exe`（放在 Downloads 等任意可执行目录都可以）。
@@ -115,6 +52,26 @@ git push origin v2026.11.18
 
 未变化文档会复用已有页面，只重建新增或修改的内容。单文件模式超过 32 MiB 时也会先询问。
 
+## 阅读模式
+
+- 点击顶栏的阅读模式按钮展开下拉菜单，可在“阅读”“源码”“双视图”之间切换。
+- 双视图左侧显示源码、右侧显示正文，两侧各自滚动并保持同步；窗口宽度不足 900px 时自动回退为阅读视图。
+- 双视图下顶栏的宽度模式按钮会隐藏，因为它对分栏布局没有作用；切回阅读/源码后恢复显示，全宽偏好保留。
+- 通过文件树或跨文档链接打开另一篇时保持当前模式，刷新页面也会恢复上次选择的模式。
+- 源码视图显示原始 Markdown，包括文档开头的 front matter，并按 Markdown 语法高亮。
+- 围栏代码块按语言高亮；列表项里缩进的围栏同样支持。
+- 源码视图始终自动换行，长行按阅读宽度折行，超长单词也会强制断开，不产生横向滚动。
+- 点击“复制源码”可复制当前文档的完整源码；焦点在源码区域时按 `Ctrl/Cmd + A` 只选中源码。
+- 点击侧栏大纲会自动回到阅读视图，并跳到对应标题；双视图中则直接定位右侧正文和左侧源码。
+
+## 打印
+
+- 阅读模式打印渲染正文，源码模式打印源码，双视图只打印渲染正文。
+- 打印页面的底色强制为纯白，避免 PDF 白色页边距与内容底色不一致；代码块、表格等内容的浅色背景保持不变。
+- 打印时代码块临时自动换行，表格收缩到页面宽度并允许表头和单元格换行，不会出现横向滚动条或被裁切。
+- 源码模式打印会隐藏源码工具栏（文件名和复制按钮），只打印源码正文。
+- 源码打印时自动换行，不产生横向滚动。
+
 ## 文档间链接
 
 - 文档里链接到本地 `.md` / `.markdown` 时，会生成目标文档的独立页面，点击后在同一标签页导航。
@@ -126,22 +83,13 @@ git push origin v2026.11.18
 - 链接到网络路径（UNC 或映射网络盘）的文档**不会在首屏预加载**，避免拖慢打开速度；点击时仍交给浏览器处理原始文件。
 - 外部 `http(s)` 链接和本地非 Markdown 文件（PDF、图片等）默认在新标签页打开；页内锚点和已预渲染的 Markdown 文档仍在当前页切换。
 
-## 临时文件
+## 版本与更新
 
-渲染缓存写入：
-
-```text
-%LOCALAPPDATA%\Programs\OpenMD\openmd-temp\rendered\<root-hash>\
-  manifest.json
-  tree.js
-  reader.css
-  reader.js
-  doc-<hash>.html
-```
-
-同一源文件始终使用同一个输出路径，内容变化时原子覆盖。源文件、版本和文档集合未变化时直接复用已有页面。不会写到 Markdown 文件所在目录。旧缓存按 7 天 / 最近 50 个 root 清理。
-
-如果安装目录不可写，会回退到 `%TEMP%\OpenMD`。
+- 顶栏右侧的圆圈 + i 按钮打开“信息与设置”面板。
+- “文件”Tab 显示当前文档的完整路径和所在目录，并支持复制路径；“设置”Tab 提供配色；“关于”Tab 显示完整版本号、构建时间和发布页。
+- “关于”Tab 中的发布页会打开 GitHub Releases；最新版本的构建时间晚于页面显示的构建时间，就说明有更新。
+- 发布页链接只在正式构建的“关于”Tab 中出现；开发构建不会展示。
+- 页面加载时不会访问 GitHub，也不做自动更新检查。
 
 ## 卸载
 
@@ -169,32 +117,5 @@ OpenMD.exe --uninstall
 - exe 未做代码签名，首次运行可能触发 SmartScreen 提示。
 - 安装与错误对话框使用 Windows 原生 TaskDialog，不跟随阅读页配色和深色模式。
 - 不做 PDF 导出、数学公式、Mermaid、文件监听或实时预览。
-
-## 图标
-
-- 图标源文件：`assets/openmd.ico`（白底、青色描边和 M 标记）
-- 网页 favicon：`internal/render/web/favicon.png`，由同一个生成器输出并以内嵌 data URI 写入页面
-- 重新生成：`go run ./tools/icon`
-- 嵌入 exe：`rsrc -ico assets/openmd.ico -manifest assets/app.manifest -o rsrc_windows_amd64.syso`
-- `assets/app.manifest` 提供 Common Controls v6、`asInvoker` 和 PerMonitorV2 DPI；修改后需重新生成 `.syso`
-- 已提交的 `rsrc_windows_amd64.syso` 会被 `go build` 自动使用，日常构建不需要再安装 `rsrc`
-
-## 开发
-
-```bash
-go test ./...
-go vet ./...
-```
-
-测试不会修改真实的 Markdown 关联；注册表测试只使用 `HKCU\Software\OpenMDTest-<随机>` 临时键并自动清理。
-
-生成人工验收案例：
-
-```bash
-go run ./tools/cases        # 轻量案例，输出到 ./cases
-go run ./tools/cases -big   # 追加大小上限用例（约 100 MB）
-```
-
-`cases/` 不提交进仓库，可随时整目录删除。验收步骤见生成后的 `cases/CHECKLIST.md`。
 
 正文样式使用 [github-markdown-css](https://github.com/sindresorhus/github-markdown-css)（MIT），许可声明见 `THIRD_PARTY_NOTICES.md`。
