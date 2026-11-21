@@ -32,7 +32,7 @@
 
 - [x] 5.1 运行 `go test ./...` 和 `go vet ./...`，确认全部通过
 - [x] 5.2 用真实 `openspec/` 目录生成页面，检查文件树、初始文档、跨文档链接定位和 500 篇截断提示；记录验证结果
-- [ ] 5.3 提交所有改动并执行 `build.bat`，确认 `OpenMD.exe` 和 `source.git.bundle` 更新成功
+- [x] 5.3 提交所有改动并执行 `build.bat`，确认 `OpenMD.exe` 和 `source.git.bundle` 更新成功
 
 ## Workflow follow-up
 
