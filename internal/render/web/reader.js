@@ -10,7 +10,8 @@
   var rootKey = document.body.getAttribute("data-root-key") || "";
   var activePath = document.body.getAttribute("data-active-path") || "";
   var treeStorageKey = "openmd-tree:" + rootKey;
-  var sourceStorageKey = "openmd-source:" + rootKey;
+  var modeStorageKey = "openmd-view:" + rootKey;
+  var legacySourceKey = "openmd-source:" + rootKey;
   var sidebarScrollKey = "openmd-sidebar-scroll:" + rootKey;
   var sidebarScrollTimer = null;
   var bodyScrollTimer = null;
@@ -21,7 +22,14 @@
   var titleEl = document.getElementById("doc-title");
   var menuButton = document.getElementById("menu-toggle");
   var widthButton = document.getElementById("width-toggle");
-  var sourceButton = document.getElementById("source-toggle");
+  var modeButton = document.getElementById("mode-button");
+  var modeMenu = document.getElementById("mode-menu");
+  var modeOptions = Array.prototype.slice.call(document.querySelectorAll(".mode-option"));
+  var modeLabelEl = document.getElementById("mode-button-label");
+  var modeNames = { render: "阅读", source: "源码", split: "双视图" };
+  var viewMode = "render";
+  var modeMenuOpen = false;
+  var pendingSyncs = [];
   var sidebarBackdrop = document.getElementById("sidebar-backdrop");
   var sidebarClose = document.getElementById("sidebar-close");
   var settingsButton = document.getElementById("settings-button");
@@ -125,19 +133,115 @@
     }
   }
 
-  function sourceModeActive() {
-    return document.body.classList.contains("source-mode");
+  function currentMode() {
+    if (document.body.classList.contains("split-mode")) {
+      return "split";
+    }
+    if (document.body.classList.contains("source-mode")) {
+      return "source";
+    }
+    return "render";
   }
 
-  function syncSourceButton() {
-    if (!sourceButton) {
+  function resolveMode(mode) {
+    if (mode === "split") {
+      return isMobile() ? "render" : "split";
+    }
+    return mode === "source" ? "source" : "render";
+  }
+
+  function renderedPane() {
+    var section = currentSection();
+    return section ? section.querySelector(".doc-rendered") : null;
+  }
+
+  function sourcePane() {
+    var section = currentSection();
+    return section ? section.querySelector(".source-code") : null;
+  }
+
+  function elementRatio(el) {
+    if (!el) {
+      return 0;
+    }
+    var max = el.scrollHeight - el.clientHeight;
+    return max > 0 ? el.scrollTop / max : 0;
+  }
+
+  function setElementTop(el, top) {
+    if (!el) {
       return;
     }
-    var active = sourceModeActive();
-    sourceButton.setAttribute("aria-pressed", active ? "true" : "false");
-    var label = active ? "返回阅读视图" : "查看源码";
-    sourceButton.setAttribute("aria-label", label);
-    sourceButton.title = label;
+    var previous = el.style.scrollBehavior;
+    el.style.scrollBehavior = "auto";
+    el.scrollTop = top;
+    el.style.scrollBehavior = previous;
+  }
+
+  function setElementRatio(el, ratio) {
+    if (!el) {
+      return;
+    }
+    var max = el.scrollHeight - el.clientHeight;
+    setElementTop(el, Math.max(0, Math.min(1, ratio)) * Math.max(0, max));
+  }
+
+  function currentScrollRatio() {
+    if (currentMode() === "split") {
+      return elementRatio(renderedPane());
+    }
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    return max > 0 ? window.scrollY / max : 0;
+  }
+
+  function markPendingSync(el) {
+    if (!el) {
+      return;
+    }
+    pendingSyncs.push({ el: el, top: el.scrollTop, time: Date.now() });
+    if (pendingSyncs.length > 8) {
+      pendingSyncs.shift();
+    }
+  }
+
+  function consumePendingSync(el) {
+    var now = Date.now();
+    for (var i = 0; i < pendingSyncs.length; i++) {
+      var pending = pendingSyncs[i];
+      if (now - pending.time > 1000) {
+        pendingSyncs.splice(i, 1);
+        i -= 1;
+        continue;
+      }
+      if (pending.el === el && Math.abs(el.scrollTop - pending.top) <= 1) {
+        pendingSyncs.splice(i, 1);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function applyScrollRatio(ratio) {
+    var value = Math.max(0, Math.min(1, ratio || 0));
+    if (currentMode() === "split") {
+      var renderPane = renderedPane();
+      var sourceCode = sourcePane();
+      setElementRatio(renderPane, value);
+      markPendingSync(renderPane);
+      setElementRatio(sourceCode, value);
+      markPendingSync(sourceCode);
+      return;
+    }
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    scrollWindowTo(value * Math.max(0, max));
+  }
+
+  function syncPanes(from, to) {
+    if (!from || !to || from === to) {
+      return;
+    }
+    setElementRatio(to, elementRatio(from));
+    markPendingSync(to);
   }
 
   function scrollWindowTo(top) {
@@ -148,17 +252,60 @@
     html.style.scrollBehavior = previous;
   }
 
-  function setSourceMode(active) {
-    if (sourceModeActive() === active) {
-      syncSourceButton();
+  function setModeMenuOpen(open, returnFocus) {
+    if (!modeMenu || !modeButton) {
       return;
     }
-    var maxBefore = document.documentElement.scrollHeight - window.innerHeight;
-    var ratio = maxBefore > 0 ? window.scrollY / maxBefore : 0;
-    document.body.classList.toggle("source-mode", active);
-    syncSourceButton();
-    var max = document.documentElement.scrollHeight - window.innerHeight;
-    scrollWindowTo(ratio * Math.max(0, max));
+    modeMenuOpen = !!open;
+    modeMenu.hidden = !open;
+    modeButton.setAttribute("aria-expanded", open ? "true" : "false");
+    if (open) {
+      var target =
+        modeMenu.querySelector('.mode-option[aria-checked="true"]') || modeOptions[0];
+      if (target) {
+        target.focus();
+      }
+    } else if (returnFocus) {
+      modeButton.focus();
+    }
+  }
+
+  function syncModeUI(mode) {
+    if (modeButton) {
+      modeButton.setAttribute("data-mode", mode);
+      var label = "阅读模式：" + modeNames[mode];
+      modeButton.setAttribute("aria-label", label);
+      modeButton.title = label;
+    }
+    if (modeLabelEl) {
+      modeLabelEl.textContent = modeNames[mode];
+    }
+    for (var i = 0; i < modeOptions.length; i++) {
+      var checked = modeOptions[i].getAttribute("data-mode") === mode;
+      modeOptions[i].setAttribute("aria-checked", checked ? "true" : "false");
+      if (modeOptions[i].getAttribute("data-mode") === "split") {
+        modeOptions[i].setAttribute("aria-disabled", isMobile() ? "true" : "false");
+      }
+    }
+  }
+
+  function applyMode(mode, persist) {
+    var next = resolveMode(mode);
+    var previous = currentMode();
+    var ratio = currentScrollRatio();
+    viewMode = mode;
+    document.body.classList.toggle("source-mode", next === "source");
+    document.body.classList.toggle("split-mode", next === "split");
+    syncModeUI(next);
+    if (persist) {
+      persistMode(mode);
+    }
+    if (previous !== next) {
+      applyScrollRatio(ratio);
+      if (next === "split") {
+        updateActiveTOC();
+      }
+    }
   }
 
   function currentTheme() {
@@ -297,6 +444,7 @@
       document.body.classList.remove("sidebar-open");
     }
     syncMenuButton();
+    applyMode(viewMode, false);
   }
 
   function currentSection() {
@@ -316,7 +464,7 @@
   }
 
   function updateActiveTOC() {
-    if (!toc || activeHeadings.length === 0 || sourceModeActive()) {
+    if (!toc || activeHeadings.length === 0 || currentMode() === "source") {
       return;
     }
     var current = activeHeadings[0].id;
@@ -378,15 +526,30 @@
   }
 
   function scrollToAnchor(section, anchor) {
-    var top = 0;
+    var target = null;
     if (anchor) {
-      var target =
+      target =
         document.getElementById(anchor) ||
         document.getElementById(section.getAttribute("data-doc-id") + "-" + anchor);
-      if (target) {
-        top = target.getBoundingClientRect().top + window.pageYOffset - 72;
-      }
     }
+    if (currentMode() === "split") {
+      var pane = renderedPane();
+      if (!pane) {
+        return;
+      }
+      var paneTop = 0;
+      if (target) {
+        paneTop =
+          target.getBoundingClientRect().top -
+          pane.getBoundingClientRect().top +
+          pane.scrollTop -
+          24;
+      }
+      setElementTop(pane, paneTop);
+      syncPanes(pane, sourcePane());
+      return;
+    }
+    var top = target ? target.getBoundingClientRect().top + window.pageYOffset - 72 : 0;
     var html = document.documentElement;
     var previous = html.style.scrollBehavior;
     html.style.scrollBehavior = "auto";
@@ -655,25 +818,28 @@
     });
   }
 
-  function persistSourceMode(active) {
+  function persistMode(mode) {
     try {
-      if (active) {
-        sessionStorage.setItem(sourceStorageKey, "1");
-      } else {
-        sessionStorage.removeItem(sourceStorageKey);
-      }
+      sessionStorage.setItem(modeStorageKey, mode);
+      sessionStorage.removeItem(legacySourceKey);
     } catch (err) {}
   }
 
-  function restoreSourceMode() {
-    if (!isDocPage) {
-      return;
-    }
+  function storedMode() {
     try {
-      if (sessionStorage.getItem(sourceStorageKey) === "1") {
-        setSourceMode(true);
+      var stored = sessionStorage.getItem(modeStorageKey);
+      if (stored === "render" || stored === "source" || stored === "split") {
+        return stored;
+      }
+      if (sessionStorage.getItem(legacySourceKey) === "1") {
+        return "source";
       }
     } catch (err) {}
+    return "render";
+  }
+
+  function restoreViewMode() {
+    applyMode(storedMode(), false);
   }
 
   function initDocPage() {
@@ -691,7 +857,6 @@
     initialPageAnchor = docHash ? "" : anchor;
     initialTreePath = activePath;
     initTree();
-    restoreSourceMode();
     var generation;
     if (docHash) {
       generation = ++navGeneration;
@@ -867,10 +1032,8 @@
     if (!isDocPage || !activePath) {
       return;
     }
-    var max = document.documentElement.scrollHeight - window.innerHeight;
-    var ratio = max > 0 ? window.scrollY / max : 0;
     try {
-      sessionStorage.setItem(bodyScrollKey(), String(ratio));
+      sessionStorage.setItem(bodyScrollKey(), String(currentScrollRatio()));
     } catch (err) {}
   }
 
@@ -891,9 +1054,7 @@
     if (isNaN(ratio)) {
       return;
     }
-    ratio = Math.max(0, Math.min(1, ratio));
-    var max = document.documentElement.scrollHeight - window.innerHeight;
-    scrollWindowTo(ratio * Math.max(0, max));
+    applyScrollRatio(Math.max(0, Math.min(1, ratio)));
   }
 
   function finishInitialReveal(skipRestore) {
@@ -1101,11 +1262,60 @@
     });
   }
 
-  if (sourceButton) {
-    sourceButton.addEventListener("click", function () {
-      var next = !sourceModeActive();
-      setSourceMode(next);
-      persistSourceMode(next);
+  if (modeButton) {
+    modeButton.addEventListener("click", function (event) {
+      event.stopPropagation();
+      if (!modeMenuOpen) {
+        setSettingsOpen(false);
+      }
+      setModeMenuOpen(!modeMenuOpen);
+    });
+  }
+
+  if (modeMenu) {
+    modeMenu.addEventListener("click", function (event) {
+      var target = event.target;
+      var option = target && target.closest ? target.closest(".mode-option") : null;
+      if (!option) {
+        return;
+      }
+      if (option.getAttribute("aria-disabled") === "true") {
+        return;
+      }
+      applyMode(option.getAttribute("data-mode"), true);
+      setModeMenuOpen(false, true);
+    });
+
+    modeMenu.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        setModeMenuOpen(false, true);
+        return;
+      }
+      if (event.key === "Tab") {
+        event.preventDefault();
+        setModeMenuOpen(false, true);
+        return;
+      }
+      var index = modeOptions.indexOf(document.activeElement);
+      if (index < 0) {
+        return;
+      }
+      var next = index;
+      if (event.key === "ArrowDown") {
+        next = (index + 1) % modeOptions.length;
+      } else if (event.key === "ArrowUp") {
+        next = (index - 1 + modeOptions.length) % modeOptions.length;
+      } else if (event.key === "Home") {
+        next = 0;
+      } else if (event.key === "End") {
+        next = modeOptions.length - 1;
+      } else {
+        return;
+      }
+      event.preventDefault();
+      modeOptions[next].focus();
     });
   }
 
@@ -1125,10 +1335,8 @@
       if (!target || !target.closest || !target.closest(".toc-link")) {
         return;
       }
-      if (sourceModeActive()) {
-        document.body.classList.remove("source-mode");
-        syncSourceButton();
-        persistSourceMode(false);
+      if (currentMode() === "source") {
+        applyMode("render", true);
       }
     });
   }
@@ -1136,6 +1344,9 @@
   if (settingsButton) {
     settingsButton.addEventListener("click", function (event) {
       event.stopPropagation();
+      if (!settingsPanel || settingsPanel.hidden) {
+        setModeMenuOpen(false, false);
+      }
       setSettingsOpen(settingsPanel ? settingsPanel.hidden : false);
     });
   }
@@ -1176,8 +1387,20 @@
     setSettingsOpen(false);
   });
 
+  document.addEventListener("click", function (event) {
+    if (!modeMenuOpen || !modeMenu) {
+      return;
+    }
+    var target = event.target;
+    if (modeMenu.contains(target) || (modeButton && modeButton.contains(target))) {
+      return;
+    }
+    setModeMenuOpen(false, false);
+  });
+
   document.addEventListener("keydown", function (event) {
     if (event.key === "Escape") {
+      setModeMenuOpen(false, false);
       setSettingsOpen(false);
       closeMobileSidebar();
     }
@@ -1231,11 +1454,42 @@
   }
   syncWidthButton();
   syncMenuButton();
-  syncSourceButton();
   setSettingsOpen(false);
+  setModeMenuOpen(false, false);
+  restoreViewMode();
 
   var storedTheme = readPref("openmd-theme");
   applyTheme(validThemes.indexOf(storedTheme) >= 0 ? storedTheme : currentTheme(), false);
+
+  document.addEventListener("scroll", function (event) {
+    if (currentMode() !== "split") {
+      return;
+    }
+    var target = event.target;
+    if (!target || !target.classList) {
+      return;
+    }
+    var section = target.closest ? target.closest(".doc-section") : null;
+    if (!section) {
+      return;
+    }
+    if (target.classList.contains("doc-rendered")) {
+      if (consumePendingSync(target)) {
+        return;
+      }
+      syncPanes(target, section.querySelector(".source-code"));
+      updateActiveTOC();
+    } else if (target.classList.contains("source-code")) {
+      if (consumePendingSync(target)) {
+        return;
+      }
+      syncPanes(target, section.querySelector(".doc-rendered"));
+    } else {
+      return;
+    }
+    clearTimeout(bodyScrollTimer);
+    bodyScrollTimer = setTimeout(saveBodyScroll, 120);
+  }, true);
 
   if (isDocPage) {
     if (sidebarScroll) {

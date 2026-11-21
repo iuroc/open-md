@@ -84,12 +84,61 @@
       </button>
       <h1 id="doc-title">{{.ActiveTitle}}</h1>
       <div class="topbar-actions">
-        <button type="button" id="source-toggle" class="icon-button" aria-label="查看源码" aria-pressed="false" title="查看源码">
-          <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M7 5.5 3 10l4 4.5"></path>
-            <path d="M13 5.5 17 10l-4 4.5"></path>
-          </svg>
-        </button>
+        <div class="mode-switch">
+          <button type="button" id="mode-button" class="mode-button" data-mode="render" aria-haspopup="menu" aria-expanded="false" aria-controls="mode-menu" aria-label="阅读模式：阅读" title="阅读模式：阅读">
+            <span class="mode-button-icon" aria-hidden="true">
+              <svg class="mode-icon mode-icon-render" viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4.5" y="3" width="11" height="14" rx="2"></rect>
+                <path d="M7.5 7h5M7.5 10h5M7.5 13h3"></path>
+              </svg>
+              <svg class="mode-icon mode-icon-source" viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M7 5.5 3 10l4 4.5"></path>
+                <path d="M13 5.5 17 10l-4 4.5"></path>
+              </svg>
+              <svg class="mode-icon mode-icon-split" viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="14" height="12" rx="2"></rect>
+                <path d="M10 4v12"></path>
+              </svg>
+            </span>
+            <span class="mode-button-label" id="mode-button-label">阅读</span>
+            <svg class="mode-chevron" viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 4.5 6 7.5 9 4.5"></path>
+            </svg>
+          </button>
+          <div id="mode-menu" class="mode-menu" role="menu" aria-label="阅读模式" hidden>
+            <div class="mode-menu-header" role="presentation">阅读模式</div>
+            <button type="button" class="mode-option" role="menuitemradio" aria-checked="true" data-mode="render" tabindex="-1">
+              <span class="mode-preview mode-preview-render" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span class="mode-option-text">
+                <span class="mode-option-name">阅读</span>
+                <span class="mode-option-desc">只看排版后的正文</span>
+              </span>
+              <span class="mode-check" aria-hidden="true">
+                <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5 6.5 11.5 12.5 4.5"></path></svg>
+              </span>
+            </button>
+            <button type="button" class="mode-option" role="menuitemradio" aria-checked="false" data-mode="source" tabindex="-1">
+              <span class="mode-preview mode-preview-source" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span class="mode-option-text">
+                <span class="mode-option-name">源码</span>
+                <span class="mode-option-desc">整页显示 Markdown 原文</span>
+              </span>
+              <span class="mode-check" aria-hidden="true">
+                <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5 6.5 11.5 12.5 4.5"></path></svg>
+              </span>
+            </button>
+            <button type="button" class="mode-option" role="menuitemradio" aria-checked="false" data-mode="split" tabindex="-1">
+              <span class="mode-preview mode-preview-split" aria-hidden="true"><span><i></i><i></i></span><span><i></i><i></i><i></i></span></span>
+              <span class="mode-option-text">
+                <span class="mode-option-name">双视图</span>
+                <span class="mode-option-desc">左侧源码，右侧正文，同步滚动</span>
+              </span>
+              <span class="mode-check" aria-hidden="true">
+                <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5 6.5 11.5 12.5 4.5"></path></svg>
+              </span>
+            </button>
+          </div>
+        </div>
         <button type="button" id="width-toggle" class="icon-button" aria-label="切换全宽阅读" aria-pressed="false" title="切换全宽阅读">
           <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M3.5 10h13"></path>

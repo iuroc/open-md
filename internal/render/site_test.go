@@ -118,6 +118,16 @@ func TestBuildDirSiteCreatesIndependentPages(t *testing.T) {
 	if !strings.Contains(string(page), "window.OPENMD_PAGES") {
 		t.Fatal("inline section bootstrap missing")
 	}
+	for _, want := range []string{
+		`id="mode-button"`,
+		`id="mode-menu"`,
+		`data-mode="split"`,
+		`role="menuitemradio"`,
+	} {
+		if !strings.Contains(string(page), want) {
+			t.Fatalf("view mode menu missing %q", want)
+		}
+	}
 	payload, err := os.ReadFile(strings.TrimSuffix(site.InitialPage, ".html") + ".js")
 	if err != nil {
 		t.Fatal(err)

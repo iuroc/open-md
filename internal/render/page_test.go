@@ -251,7 +251,7 @@ func TestRenderPageContainsEmbeddedUIAndCSP(t *testing.T) {
 	}
 }
 
-func TestRenderPageSourceToggleAndBlocks(t *testing.T) {
+func TestRenderPageViewModeMenuAndSourceBlocks(t *testing.T) {
 	page := &Page{
 		Mode:  "file",
 		Title: "A",
@@ -278,9 +278,20 @@ func TestRenderPageSourceToggleAndBlocks(t *testing.T) {
 	}
 	s := string(out)
 	for _, want := range []string{
-		`id="source-toggle"`,
-		`aria-pressed="false"`,
-		`aria-label="查看源码"`,
+		`id="mode-button"`,
+		`id="mode-menu"`,
+		`role="menu"`,
+		`role="menuitemradio"`,
+		`data-mode="render"`,
+		`data-mode="source"`,
+		`data-mode="split"`,
+		`aria-checked="true"`,
+		`aria-label="阅读模式：阅读"`,
+		`阅读模式`,
+		`只看排版后的正文`,
+		`整页显示 Markdown 原文`,
+		`双视图`,
+		`左侧源码，右侧正文，同步滚动`,
 		`class="doc-rendered"`,
 		`class="source-view"`,
 		`class="source-toolbar"`,
@@ -436,12 +447,81 @@ func TestDocPageHidesUntilReady(t *testing.T) {
 	}
 }
 
-func TestReaderJSRestoresSourceModeOnReload(t *testing.T) {
-	if !strings.Contains(readerJS, `sessionStorage.getItem(sourceStorageKey) === "1"`) {
-		t.Fatal("source mode must be restored from session storage")
+func TestReaderJSRestoresViewModeOnReload(t *testing.T) {
+	for _, want := range []string{
+		"modeStorageKey",
+		"legacySourceKey",
+		"storedMode",
+		"restoreViewMode",
+		"sessionStorage.getItem(modeStorageKey)",
+	} {
+		if !strings.Contains(readerJS, want) {
+			t.Fatalf("reader.js missing %q", want)
+		}
 	}
 	if strings.Contains(readerJS, `navigationType() === "reload"`) {
-		t.Fatal("reload must not clear source mode")
+		t.Fatal("reload must not clear the view mode")
+	}
+}
+
+func TestReaderJSSupportsSplitView(t *testing.T) {
+	for _, want := range []string{
+		`"mode-button"`,
+		`"mode-menu"`,
+		".mode-option",
+		"applyMode",
+		"resolveMode",
+		"currentScrollRatio",
+		"applyScrollRatio",
+		"syncPanes",
+		"renderedPane",
+		"sourcePane",
+		"elementRatio",
+		"split-mode",
+		"setElementTop",
+	} {
+		if !strings.Contains(readerJS, want) {
+			t.Fatalf("reader.js missing %q", want)
+		}
+	}
+}
+
+func TestReaderCSSSupportsSplitView(t *testing.T) {
+	section := readerCSSRule(t, "body.split-mode .doc-section.markdown-body {")
+	for _, want := range []string{
+		"display: grid;",
+		"grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);",
+		"height: 100%;",
+		"max-width: none;",
+	} {
+		if !strings.Contains(section, want) {
+			t.Fatalf("split section rule missing %q: %s", want, section)
+		}
+	}
+	source := readerCSSRule(t, "body.split-mode .doc-section .source-view {")
+	for _, want := range []string{
+		"display: flex;",
+		"grid-column: 1;",
+		"grid-row: 1;",
+		"overflow: hidden;",
+	} {
+		if !strings.Contains(source, want) {
+			t.Fatalf("split source rule missing %q: %s", want, source)
+		}
+	}
+	rendered := readerCSSRule(t, "body.split-mode .doc-section .doc-rendered {")
+	for _, want := range []string{
+		"grid-column: 2;",
+		"grid-row: 1;",
+		"overflow-y: auto;",
+	} {
+		if !strings.Contains(rendered, want) {
+			t.Fatalf("split rendered rule missing %q: %s", want, rendered)
+		}
+	}
+	if !strings.Contains(readerCSS, "body.split-mode #doc-content {") ||
+		!strings.Contains(readerCSS, "height: calc(100vh - var(--chrome-height));") {
+		t.Fatal("split mode must fill the viewport below the topbar")
 	}
 }
 
@@ -454,7 +534,8 @@ func TestReaderJSPersistsScrollPositions(t *testing.T) {
 		"suppressTreeScrollOnce",
 		"var restored = restoreSidebarScroll();",
 		"scrollWindowTo",
-		"maxBefore",
+		"currentScrollRatio",
+		"applyScrollRatio",
 		"markClickHash",
 		"consumeClickHash",
 		"preserveScroll",
