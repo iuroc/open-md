@@ -34,8 +34,16 @@ func buildSite(t *testing.T, dir, cache string) *Site {
 }
 
 func TestDocPageEnablesViewTransitionsInline(t *testing.T) {
-	if !strings.Contains(docPageTemplateSource, "@view-transition { navigation: auto; }") {
-		t.Fatal("doc page must opt into view transitions inline")
+	for _, want := range []string{
+		"@view-transition { navigation: auto; }",
+		"::view-transition { pointer-events: none; }",
+		`addEventListener("pageswap"`,
+		`addEventListener("pagereveal"`,
+		"skipTransition()",
+	} {
+		if !strings.Contains(docPageTemplateSource, want) {
+			t.Fatalf("doc page missing %q", want)
+		}
 	}
 	if strings.Contains(readerCSS, "@view-transition") {
 		t.Fatal("view transition opt-in must stay inline, not in an external stylesheet")

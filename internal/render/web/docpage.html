@@ -17,10 +17,26 @@
       document.documentElement.setAttribute("data-theme", theme);
     }
   } catch (err) {}
+
+  function cancelOnInteraction(event) {
+    var viewTransition = event.viewTransition;
+    if (!viewTransition) {
+      return;
+    }
+    ["pointerdown", "keydown"].forEach(function (type) {
+      document.addEventListener(type, function () {
+        viewTransition.skipTransition();
+      }, { once: true });
+    });
+  }
+
+  window.addEventListener("pageswap", cancelOnInteraction);
+  window.addEventListener("pagereveal", cancelOnInteraction);
 })();
 </script>
 <style>
   @view-transition { navigation: auto; }
+  ::view-transition { pointer-events: none; }
   html { background: #fbfdff; }
   html[data-theme="teal"] { background: #ffffff; }
   html[data-theme="violet"] { background: #fcfbff; }
