@@ -83,6 +83,10 @@ cases/
   03-lists.md              有序/无序/嵌套/混合/任务列表、非 1 起始编号
   04-tables.md             对齐、单元格内代码、转义竖线、宽表、中文
   05-code.md               围栏代码（有无语言）、缩进代码、长行、未知语言
+  05a-code-systems.md      Go、Rust、C、C++、C#、Java、Kotlin、Swift、Scala、汇编
+  05b-code-scripting.md    Python、JavaScript、TypeScript、Ruby、PHP、Perl、Lua、Bash、PowerShell、R、Julia、Dart
+  05c-code-functional.md   Haskell、Elixir、Erlang、Clojure、F#、OCaml、Scheme、Common Lisp
+  05d-code-data-web.md     JSON、YAML、TOML、SQL、HTML、CSS、SCSS、XML、GraphQL、Protobuf、INI、Diff、Dockerfile、Makefile、Nginx、Terraform、LaTeX
   06-footnotes.md          脚注 [^1]，与 07-footnotes-peer.md 同时打开
   07-footnotes-peer.md     独立 [^1]，验证多文档脚注作用域
   08-anchors.md            页内英文/中文锚点、重复标题锚点

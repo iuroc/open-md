@@ -5,8 +5,11 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 	"unicode/utf8"
+
+	"github.com/alecthomas/chroma/v2/lexers"
 )
 
 func SmallTestSizes() BigSizes {
@@ -77,7 +80,10 @@ func TestLightFixtureStructure(t *testing.T) {
 	}
 	for _, want := range []string{
 		"CHECKLIST.md", markerName,
-		"01-headings.md", "05-code.md", "06-footnotes.md",
+		"01-headings.md", "05-code.md",
+		"05a-code-systems.md", "05b-code-scripting.md",
+		"05c-code-functional.md", "05d-code-data-web.md",
+		"06-footnotes.md",
 		"07-footnotes-peer.md", "08-anchors.md", "09-links-target.md",
 		"10-frontmatter-yaml.md", "11-frontmatter-toml.md", "12-hr-mid.md",
 		"13-links.md", "14-images.md", "15-broken.md", "16-empty.md",
@@ -145,6 +151,30 @@ func TestLightFixtureContent(t *testing.T) {
 	dupB := mustRead(t, filepath.Join(dir, "tree", "duplicates", "b", "a.md"))
 	if bytes.Equal(dupA, dupB) {
 		t.Fatal("duplicate-name fixtures must differ")
+	}
+}
+
+func TestCodeFixtureLanguages(t *testing.T) {
+	dir := t.TempDir()
+	if err := Generate(Options{Out: dir}); err != nil {
+		t.Fatal(err)
+	}
+	expected := map[string][]string{
+		"05a-code-systems.md":    {"go", "rust", "c", "cpp", "csharp", "java", "kotlin", "swift", "scala", "nasm"},
+		"05b-code-scripting.md":  {"python", "javascript", "typescript", "ruby", "php", "perl", "lua", "bash", "powershell", "r", "julia", "dart"},
+		"05c-code-functional.md": {"haskell", "elixir", "erlang", "clojure", "fsharp", "ocaml", "scheme", "lisp"},
+		"05d-code-data-web.md":   {"json", "yaml", "toml", "sql", "html", "css", "scss", "xml", "graphql", "protobuf", "ini", "diff", "dockerfile", "makefile", "nginx", "terraform", "latex"},
+	}
+	for file, languages := range expected {
+		data := string(mustRead(t, filepath.Join(dir, file)))
+		for _, lang := range languages {
+			if !strings.Contains(data, "```"+lang+"\n") {
+				t.Errorf("%s: missing fenced block for %q", file, lang)
+			}
+			if lexers.Get(lang) == nil {
+				t.Errorf("%s: Chroma has no lexer for %q, block would not highlight", file, lang)
+			}
+		}
 	}
 }
 

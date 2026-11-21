@@ -180,6 +180,8 @@ func LightFixtures() []Fixture {
 		fixture("common/手册.pdf", "%PDF-1.4\n% OpenMD 人工验收占位附件\n%%EOF\n"),
 	}
 
+	files = append(files, codeFixtures()...)
+
 	for i := 1; i <= 501; i++ {
 		files = append(files, fixture(
 			fmt.Sprintf("limits-count/doc-%03d.md", i),
