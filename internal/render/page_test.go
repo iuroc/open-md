@@ -397,7 +397,8 @@ func TestReaderCSSRendersFileTree(t *testing.T) {
 func TestReaderJSCoalescesRapidDocumentSwitches(t *testing.T) {
 	for _, want := range []string{
 		"navCoalesceMs",
-		`closest("#doc-list a[href]")`,
+		"isDocPageLink",
+		`closest("a[href]")`,
 		"pendingNavHref",
 		"clearTimeout(pendingNavTimer)",
 	} {

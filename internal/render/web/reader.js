@@ -736,6 +736,13 @@
   var pendingNavHref = "";
   var pendingNavTimer = null;
 
+  function isDocPageLink(href) {
+    if (!href || href.charAt(0) === "#" || href.charAt(0) === "/" || href.charAt(0) === "\\" || href.indexOf(":") >= 0) {
+      return false;
+    }
+    return /\.html(?:#.*)?$/i.test(href);
+  }
+
   document.addEventListener("click", function (event) {
     if (event.defaultPrevented || event.button !== 0) {
       return;
@@ -747,12 +754,12 @@
     if (!target || !target.closest) {
       return;
     }
-    var link = target.closest("#doc-list a[href]");
+    var link = target.closest("a[href]");
     if (!link) {
       return;
     }
     var href = link.getAttribute("href");
-    if (!href || href.charAt(0) === "#" || link.hasAttribute("download") || link.getAttribute("target")) {
+    if (!isDocPageLink(href) || link.hasAttribute("download") || link.getAttribute("target")) {
       return;
     }
     if (event.detail === 0) {
@@ -761,12 +768,14 @@
     }
     event.preventDefault();
     pendingNavHref = href;
-    var active = docList ? docList.querySelector("a.active") : null;
-    if (active && active !== link) {
-      active.classList.remove("active");
-    }
     if (docList) {
-      link.classList.add("active");
+      var active = docList.querySelector("a.active");
+      if (active && active !== link) {
+        active.classList.remove("active");
+      }
+      if (docList.contains(link)) {
+        link.classList.add("active");
+      }
     }
     clearTimeout(pendingNavTimer);
     pendingNavTimer = setTimeout(function () {
