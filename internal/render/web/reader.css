@@ -885,6 +885,11 @@ body.full-width #doc-content {
 
 #doc-content {
   padding: 26px 32px 90px;
+  transition: opacity 140ms ease;
+}
+
+#doc-content.doc-fading {
+  opacity: 0;
 }
 
 .doc-section {
@@ -1082,6 +1087,10 @@ body.source-mode .doc-section .source-view {
   }
 
   #sidebar {
+    transition: none;
+  }
+
+  #doc-content {
     transition: none;
   }
 }

@@ -400,6 +400,8 @@ func TestReaderJSSupportsSoftDocumentNavigation(t *testing.T) {
 		"window.OPENMD_PAGES",
 		"sectionHTML",
 		"ownFile",
+		"doc-fading",
+		"prefersReducedMotion",
 		"loadSoftPage",
 		"navGeneration",
 		"hashchange",
@@ -411,6 +413,16 @@ func TestReaderJSSupportsSoftDocumentNavigation(t *testing.T) {
 	}
 	if strings.Contains(readerJS, "DOMParser") {
 		t.Fatal("payloads must not be parsed as full documents")
+	}
+}
+
+func TestReaderCSSFadesDocumentContent(t *testing.T) {
+	rule := readerCSSRule(t, "#doc-content.doc-fading {")
+	if !strings.Contains(rule, "opacity: 0;") {
+		t.Fatalf("faded content rule missing: %s", rule)
+	}
+	if !strings.Contains(readerCSS, "transition: opacity 140ms ease;") {
+		t.Fatal("document content must fade")
 	}
 }
 
