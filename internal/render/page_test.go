@@ -399,6 +399,7 @@ func TestReaderJSSupportsSoftDocumentNavigation(t *testing.T) {
 		"isDocPageLink",
 		"window.OPENMD_PAGES",
 		"sectionHTML",
+		"ownFile",
 		"loadSoftPage",
 		"navGeneration",
 		"hashchange",

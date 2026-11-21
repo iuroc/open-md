@@ -672,10 +672,6 @@
   }
 
   function initDocPage() {
-    var section = sections.length ? sections[0] : null;
-    if (!section) {
-      return;
-    }
     var hash = window.location.hash;
     var docHash = parseDocHash(hash);
     var anchor = "";
@@ -686,18 +682,16 @@
         anchor = hash.slice(1);
       }
     }
-    showDoc(section.getAttribute("data-doc-id"), anchor, false);
+    initialFile = ownFile();
+    initialPageAnchor = docHash ? "" : anchor;
+    initialTreePath = activePath;
     initTree();
     restoreSourceMode();
-    var content = document.getElementById("doc-content");
-    if (content) {
-      initialPageHTML = content.innerHTML;
-      initialPageAnchor = anchor;
-      initialPagePath = activePath;
-    }
+    var generation = ++navGeneration;
     if (docHash) {
-      var generation = ++navGeneration;
       loadSoftPage(docHash.file, docHash.anchor, treePathForFile(docHash.file), generation);
+    } else {
+      loadSoftPage(initialFile, anchor, initialTreePath, generation);
     }
   }
 
@@ -745,9 +739,9 @@
   }
 
   var navGeneration = 0;
-  var initialPageHTML = "";
+  var initialFile = "";
   var initialPageAnchor = "";
-  var initialPagePath = "";
+  var initialTreePath = "";
 
   function isDocPageLink(href) {
     if (!href || href.charAt(0) === "#" || href.charAt(0) === "/" || href.charAt(0) === "\\" || href.indexOf(":") >= 0) {
@@ -762,6 +756,15 @@
       return { file: href, anchor: "" };
     }
     return { file: href.slice(0, index), anchor: href.slice(index + 1) };
+  }
+
+  function ownFile() {
+    var href = document.body.getAttribute("data-doc-href") || "";
+    if (href) {
+      return href;
+    }
+    var path = window.location.pathname || "";
+    return path.substring(path.lastIndexOf("/") + 1);
   }
 
   function payloadHref(file) {
@@ -830,22 +833,24 @@
     return true;
   }
 
-  function restoreInitialPage(anchor) {
-    if (!initialPageHTML) {
-      return false;
+  function fallback(file, anchor) {
+    if (!file) {
+      return;
     }
-    var content = document.getElementById("doc-content");
-    if (!content) {
-      return false;
+    if (file === initialFile) {
+      var content = document.getElementById("doc-content");
+      if (content) {
+        content.innerHTML = '<p class="read-error">无法加载文档内容</p>';
+      }
+      return;
     }
-    content.innerHTML = initialPageHTML;
-    sections = Array.prototype.slice.call(document.querySelectorAll(".doc-section"));
-    showDoc("doc", anchor || initialPageAnchor, false);
-    setActiveTree(initialPagePath);
-    return true;
+    window.location.href = file + (anchor ? "#" + anchor : "");
   }
 
   function loadSoftPage(file, anchor, treePath, generation) {
+    if (!file) {
+      return;
+    }
     var payload = payloadHref(file);
     var pages = window.OPENMD_PAGES || {};
     var apply = function (page) {
@@ -853,7 +858,7 @@
         return;
       }
       if (!replaceSections(page, anchor)) {
-        window.location.href = file + (anchor ? "#" + anchor : "");
+        fallback(file, anchor);
         return;
       }
       setActiveTree(treePath);
@@ -871,7 +876,7 @@
       var loaded = (window.OPENMD_PAGES || {})[payload];
       if (!loaded) {
         if (generation === navGeneration) {
-          window.location.href = file + (anchor ? "#" + anchor : "");
+          fallback(file, anchor);
         }
         return;
       }
@@ -882,7 +887,7 @@
         script.parentNode.removeChild(script);
       }
       if (generation === navGeneration) {
-        window.location.href = file + (anchor ? "#" + anchor : "");
+        fallback(file, anchor);
       }
     };
     document.head.appendChild(script);
@@ -891,8 +896,9 @@
   function showDocFromHash(hash) {
     var info = parseDocHash(hash);
     if (!info) {
-      if (!hash) {
-        restoreInitialPage("");
+      if (!hash && initialFile) {
+        var initialGeneration = ++navGeneration;
+        loadSoftPage(initialFile, initialPageAnchor, initialTreePath, initialGeneration);
       }
       return;
     }

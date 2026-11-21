@@ -69,7 +69,7 @@
 <link rel="stylesheet" href="chroma.css">
 <link rel="stylesheet" href="reader.css">
 </head>
-<body data-doc-page="true" data-mode="{{.Mode}}" data-root-key="{{.RootKey}}" data-active-path="{{.Doc.RelPath}}" data-has-files-panel="{{if .HasFilesPanel}}true{{else}}false{{end}}">
+<body data-doc-page="true" data-mode="{{.Mode}}" data-root-key="{{.RootKey}}" data-active-path="{{.Doc.RelPath}}" data-doc-href="{{.Href}}" data-has-files-panel="{{if .HasFilesPanel}}true{{else}}false{{end}}">
 <div class="app">
   <aside id="sidebar" aria-label="阅读导航">
     <div class="sidebar-header">
@@ -187,9 +187,7 @@
       </div>
     </header>
 
-    <div id="doc-content">
-      {{template "docsection" .}}
-    </div>
+    <div id="doc-content"></div>
   </main>
 </div>
 <script src="tree.js"></script>

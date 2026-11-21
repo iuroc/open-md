@@ -71,9 +71,6 @@ func TestBuildDirSiteCreatesIndependentPages(t *testing.T) {
 		t.Fatal(err)
 	}
 	href := docHref(bPath)
-	if !strings.Contains(string(page), `href="`+href+`"`) {
-		t.Fatalf("cross-document page link missing: %s", page)
-	}
 	if !strings.Contains(string(page), `href="reader.css"`) {
 		t.Fatal("shared reader.css not referenced")
 	}
@@ -83,8 +80,11 @@ func TestBuildDirSiteCreatesIndependentPages(t *testing.T) {
 	if !strings.Contains(string(page), "html { background: #fbfdff; }") {
 		t.Fatal("boot background missing")
 	}
-	if strings.Contains(string(page), `data-dir=""`) {
-		t.Fatal("document directory missing")
+	if strings.Contains(string(page), `class="doc-section`) {
+		t.Fatal("thin document shell must not embed the section")
+	}
+	if !strings.Contains(string(page), `data-doc-href="`) {
+		t.Fatal("thin document shell missing payload href")
 	}
 	payload, err := os.ReadFile(strings.TrimSuffix(site.InitialPage, ".html") + ".js")
 	if err != nil {
@@ -97,6 +97,9 @@ func TestBuildDirSiteCreatesIndependentPages(t *testing.T) {
 	}
 	if strings.Contains(string(payload), "<!doctype") || strings.Contains(string(payload), `id="sidebar"`) {
 		t.Fatal("document payload must not include the page shell")
+	}
+	if strings.Contains(string(payload), `"dir":""`) {
+		t.Fatal("document payload directory missing")
 	}
 	if !strings.Contains(string(page), `src="tree.js"`) {
 		t.Fatal("shared tree.js not referenced")
