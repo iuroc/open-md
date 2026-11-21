@@ -35,6 +35,12 @@
     }
   } catch (err) {}
 
+  try {
+    if ((window.location.hash || "").indexOf("#openmd=") === 0) {
+      document.documentElement.classList.add("openmd-hash-load");
+    }
+  } catch (err) {}
+
   function cancelOnInteraction(event) {
     var viewTransition = event.viewTransition;
     if (!viewTransition) {
@@ -54,6 +60,7 @@
 <style>
   @view-transition { navigation: auto; }
   ::view-transition { pointer-events: none; }
+  html.openmd-hash-load #doc-content { visibility: hidden; }
   html { background: #fbfdff; }
   html[data-theme="teal"] { background: #ffffff; }
   html[data-theme="violet"] { background: #fcfbff; }

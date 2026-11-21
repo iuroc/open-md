@@ -39,6 +39,11 @@
   var validThemes = ["blue", "teal", "violet", "graphite"];
   var themeQuery = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
   var mobileQuery = window.matchMedia ? window.matchMedia("(max-width: 900px)") : null;
+  var reduceMotionQuery = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
+
+  function prefersReducedMotion() {
+    return !!(reduceMotionQuery && reduceMotionQuery.matches);
+  }
   var activeHeadings = [];
 
   function applyChromaTheme() {
@@ -616,8 +621,9 @@
         setFolderExpanded(toggles[i], true, false);
       }
     }
-    var active = markActiveTree();
-    if (!restoreSidebarScroll()) {
+    var pendingHash = document.documentElement.classList.contains("openmd-hash-load");
+    var active = pendingHash ? null : markActiveTree();
+    if (!pendingHash && !restoreSidebarScroll()) {
       scrollActiveTreeIntoView(active);
     }
     saveTreeExpanded();
@@ -746,6 +752,7 @@
   }
 
   var navGeneration = 0;
+  var fadeTimer = null;
   var initialFile = "";
   var initialPageAnchor = "";
   var initialTreePath = "";
@@ -824,6 +831,7 @@
         links[j].classList.add("active");
         links[j].setAttribute("aria-current", "page");
         expandTreeAncestors(links[j]);
+        scrollActiveTreeIntoView(links[j]);
         return;
       }
     }
@@ -837,6 +845,7 @@
     content.innerHTML = page.sectionHTML;
     sections = Array.prototype.slice.call(document.querySelectorAll(".doc-section"));
     showDoc("doc", anchor, false);
+    document.documentElement.classList.remove("openmd-hash-load");
     return true;
   }
 
@@ -864,11 +873,37 @@
       if (generation !== navGeneration) {
         return;
       }
-      if (!replaceSections(page, anchor)) {
+      var content = document.getElementById("doc-content");
+      if (!page || !page.sectionHTML || !content) {
         fallback(file, anchor);
         return;
       }
-      setActiveTree(treePath);
+      var finish = function () {
+        if (generation !== navGeneration) {
+          return;
+        }
+        if (!replaceSections(page, anchor)) {
+          content.classList.remove("doc-fading");
+          fallback(file, anchor);
+          return;
+        }
+        setActiveTree(treePath);
+        void content.offsetWidth;
+        content.classList.remove("doc-fading");
+      };
+      var pendingHash = document.documentElement.classList.contains("openmd-hash-load");
+      if (prefersReducedMotion()) {
+        finish();
+        return;
+      }
+      clearTimeout(fadeTimer);
+      fadeTimer = null;
+      content.classList.add("doc-fading");
+      if (pendingHash || !content.querySelector(".doc-section")) {
+        finish();
+        return;
+      }
+      fadeTimer = setTimeout(finish, 140);
     };
     if (pages[payload]) {
       apply(pages[payload]);
