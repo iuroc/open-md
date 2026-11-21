@@ -858,6 +858,15 @@ func TestReaderCSSSourceUsesBodyFontSize(t *testing.T) {
 	}
 }
 
+func TestReaderCSSNeutralizesChromaErrors(t *testing.T) {
+	rule := readerCSSRule(t, ".doc-section .chroma.light .err,")
+	for _, want := range []string{"color: inherit;", "background-color: transparent;"} {
+		if !strings.Contains(rule, want) {
+			t.Fatalf("Chroma error rule missing %q: %s", want, rule)
+		}
+	}
+}
+
 func TestReaderCSSColorsMarkdownTokens(t *testing.T) {
 	for _, selector := range []string{
 		".doc-section .chroma.light .gh,",

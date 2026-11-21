@@ -1228,6 +1228,15 @@ html.openmd-hash-load #doc-content {
   color: var(--accent);
 }
 
+/* Chroma emits Error tokens for syntax its bundled lexers do not recognize.
+   A read-only viewer should not paint those as alarming dark blocks, so fall
+   back to ordinary text for every language and theme. */
+.doc-section .chroma.light .err,
+.doc-section .chroma.dark .err {
+  color: inherit;
+  background-color: transparent;
+}
+
 .source-view {
   display: none;
 }

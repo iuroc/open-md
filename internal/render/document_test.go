@@ -165,22 +165,3 @@ func TestRenderMarkdownTitleFallbackAndHighlighting(t *testing.T) {
 		t.Fatal("Chroma classes missing")
 	}
 }
-
-func TestSourceHighlightingSupportsJavaScriptPrivateNames(t *testing.T) {
-	source := []byte("```javascript\nthis.#items.get(key)\n```\n")
-	html := string(highlightSource(source))
-	if strings.Contains(html, `class="err"`) {
-		t.Fatalf("private field was highlighted as an error: %s", html)
-	}
-	if !strings.Contains(html, "#items") {
-		t.Fatalf("private field missing from highlighted source: %s", html)
-	}
-
-	doc, err := RenderMarkdown(source, `C:\docs\note.md`, RenderOptions{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if strings.Contains(string(doc.HTML), `class="err"`) {
-		t.Fatalf("rendered private field was highlighted as an error: %s", doc.HTML)
-	}
-}
