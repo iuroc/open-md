@@ -39,4 +39,4 @@
 - [x] 6.2 更新验收清单和案例说明，移除旧“单页/500 篇”预期
 - [x] 6.3 运行 `go test ./... -count=1`、`go vet ./...`，确认全部通过
 - [x] 6.4 用真实 `openspec/` 和 3,000+ 篇合成目录验证首次生成、缓存复用、确认弹窗、树导航和源码模式
-- [ ] 6.5 提交所有改动并执行 `build.bat`，确认 `OpenMD.exe` 和 `source.git.bundle` 更新
+- [x] 6.5 提交所有改动并执行 `build.bat`，确认 `OpenMD.exe` 和 `source.git.bundle` 更新
