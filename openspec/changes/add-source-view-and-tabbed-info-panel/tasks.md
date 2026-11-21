@@ -22,7 +22,7 @@
 
 ## 4. 信息面板 Tab
 
-- [ ] 4.1 修改 `internal/render/web/page.html`：面板标题改为 `OpenMD`，增加“文件 / 设置 / 关于”Tab、三个 `role="tabpanel"`、文件路径与复制路径、配色和关于内容，保留发布页条件；更新现有面板测试并运行 `go test ./internal/render -run TestRenderPage -count=1` 通过
+- [x] 4.1 修改 `internal/render/web/page.html`：面板标题改为 `OpenMD`，增加“文件 / 设置 / 关于”Tab、三个 `role="tabpanel"`、文件路径与复制路径、配色和关于内容，保留发布页条件；更新现有面板测试并运行 `go test ./internal/render -run TestRenderPage -count=1` 通过
 - [x] 4.2 在 `internal/render/web/reader.css` 增加面板 flex 布局、固定头部与 Tab 栏、独立滚动内容区、等宽三项 Tab、hover 和 `focus-visible`；生成页面并用截图确认三个 Tab、内容滚动和窄屏布局
 - [x] 4.3 在 `internal/render/web/reader.js` 实现 Tab 切换、`aria-selected` 和 roving `tabindex`、左右方向键与 Home/End、会话内保留上次 Tab；在浏览器中逐项验证鼠标和键盘操作
 - [x] 4.4 更新 `README.md` 的面板说明和文案，确认标题、Tab 名称、复制路径和发布页描述与实现一致
@@ -30,8 +30,8 @@
 ## 5. 集成验证
 
 - [x] 5.1 运行 `go test ./... -count=1`，确认全部测试通过
-- [ ] 5.2 分别用单文件、目录和链接文档 fixture 打开页面，验证源码切换、复制、源码全选、宽表格滚动、三个面板 Tab 和四套配色无回归；用截图记录关键状态
-- [ ] 5.3 按仓库约定提交改动，然后执行 `printf '\n' | cmd.exe //c build.bat`，确认 `OpenMD.exe` 和 `source.git.bundle` 生成成功
+- [x] 5.2 分别用单文件、目录和链接文档 fixture 打开页面，验证源码切换、复制、源码全选、宽表格滚动、三个面板 Tab 和四套配色无回归；用截图记录关键状态
+- [x] 5.3 按仓库约定提交改动，然后执行 `printf '\n' | cmd.exe //c build.bat`，确认 `OpenMD.exe` 和 `source.git.bundle` 生成成功
 
 ## Workflow follow-up
 
