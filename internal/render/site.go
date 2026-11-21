@@ -95,6 +95,7 @@ type siteDoc struct {
 	Error      bool
 	Links      []siteLink
 	NeedRender bool
+	Inline     bool
 }
 
 type siteManifest struct {
@@ -113,6 +114,7 @@ type siteManifestDoc struct {
 	Linked  bool       `json:"linked,omitempty"`
 	Links   []siteLink `json:"links,omitempty"`
 	Errored bool       `json:"errored,omitempty"`
+	Inline  bool       `json:"inline,omitempty"`
 }
 
 func BuildDirSite(dirPath string, opts SiteOptions) (*Site, error) {
@@ -180,14 +182,18 @@ func BuildDirSite(dirPath string, opts SiteOptions) (*Site, error) {
 	primaryPaths := make(map[string]bool, len(result.Documents))
 	for _, doc := range result.Documents {
 		primaryPaths[pathKey(doc.Path)] = true
-		sd := &siteDoc{
+		primary = append(primary, &siteDoc{
 			Path:    doc.Path,
 			RelPath: doc.RelPath,
 			MTime:   doc.ModTime,
 			Size:    doc.Size,
-		}
-		entry, ok := entryByPath[pathKey(doc.Path)]
-		if ok && entry.MTime == sd.MTime && entry.Size == sd.Size && cacheDocReady(cacheDir, entry.Href) {
+		})
+	}
+	active := initialSiteDocIndex(primary)
+	primary[active].Inline = true
+	for _, sd := range primary {
+		entry, ok := entryByPath[pathKey(sd.Path)]
+		if ok && entry.MTime == sd.MTime && entry.Size == sd.Size && cacheDocReady(cacheDir, entry.Href) && entry.Inline == sd.Inline {
 			sd.Title = entry.Title
 			sd.Links = entry.Links
 			sd.Href = entry.Href
@@ -195,7 +201,6 @@ func BuildDirSite(dirPath string, opts SiteOptions) (*Site, error) {
 			sd.NeedRender = true
 			readPrimary(sd)
 		}
-		primary = append(primary, sd)
 	}
 
 	linked, linkedWarnings := collectLinkedDocs(primary, primaryPaths, entryByPath, cacheDir, abs)
@@ -241,7 +246,6 @@ func BuildDirSite(dirPath string, opts SiteOptions) (*Site, error) {
 	touchDir(cacheDir)
 	prunePages(cacheDir, all)
 
-	active := initialSiteDocIndex(primary)
 	site.InitialPage = filepath.Join(cacheDir, primary[active].Href)
 	for _, doc := range all {
 		if doc.NeedRender {
@@ -292,8 +296,9 @@ func BuildFileSite(filePath string, opts SiteOptions) (*Site, error) {
 		RelPath: filepath.Base(abs),
 		MTime:   info.ModTime().UnixNano(),
 		Size:    info.Size(),
+		Inline:  true,
 	}
-	if entry, ok := entryByPath[pathKey(abs)]; ok && entry.MTime == primaryDoc.MTime && entry.Size == primaryDoc.Size && cacheDocReady(cacheDir, entry.Href) {
+	if entry, ok := entryByPath[pathKey(abs)]; ok && entry.MTime == primaryDoc.MTime && entry.Size == primaryDoc.Size && cacheDocReady(cacheDir, entry.Href) && entry.Inline == primaryDoc.Inline {
 		primaryDoc.Title = entry.Title
 		primaryDoc.Links = entry.Links
 		primaryDoc.Href = entry.Href
@@ -409,7 +414,7 @@ func collectLinkedDocs(primary []*siteDoc, primaryPaths map[string]bool, entries
 			sd.RelPath = filepath.Base(target.Path)
 		}
 		entry, ok := entries[pathKey(target.Path)]
-		if ok && entry.MTime == sd.MTime && entry.Size == sd.Size && cacheDocReady(cacheDir, entry.Href) {
+		if ok && entry.MTime == sd.MTime && entry.Size == sd.Size && cacheDocReady(cacheDir, entry.Href) && entry.Inline == sd.Inline {
 			sd.Title = entry.Title
 			sd.Href = entry.Href
 		} else {
@@ -536,6 +541,7 @@ func renderOneDoc(cacheDir, mode, rootKey string, doc *siteDoc, knownDocs map[st
 		RootKey:       rootKey,
 		Href:          doc.Href,
 		Payload:       docPayloadHref(doc.Href),
+		InlineSection: doc.Inline,
 		HasFilesPanel: hasFilesPanel,
 		Doc:           document,
 	}
@@ -616,6 +622,7 @@ func manifestFor(version, knownHash, root string, docs []*siteDoc) siteManifest 
 			Linked:  doc.Linked,
 			Links:   doc.Links,
 			Errored: doc.Error,
+			Inline:  doc.Inline,
 		})
 	}
 	return m

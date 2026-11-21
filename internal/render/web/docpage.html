@@ -188,10 +188,13 @@
       </div>
     </header>
 
-    <div id="doc-content"></div>
+    <div id="doc-content">{{if .InlineSection}}{{template "docsection" .}}{{end}}</div>
     <script>
     (function () {
       if ((window.location.hash || "").indexOf("#openmd=") === 0) {
+        return;
+      }
+      if (document.querySelector("#doc-content .doc-section")) {
         return;
       }
       var key = document.body.getAttribute("data-own-payload") || "";

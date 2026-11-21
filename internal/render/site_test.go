@@ -92,8 +92,15 @@ func TestBuildDirSiteCreatesIndependentPages(t *testing.T) {
 	if !strings.Contains(string(page), "html { background: #fbfdff; }") {
 		t.Fatal("boot background missing")
 	}
-	if strings.Contains(string(page), `class="doc-section`) {
-		t.Fatal("thin document shell must not embed the section")
+	if !strings.Contains(string(page), `class="doc-section`) {
+		t.Fatal("initial page must embed its section for first paint")
+	}
+	bPage, err := os.ReadFile(filepath.Join(filepath.Dir(site.InitialPage), href))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(bPage), `class="doc-section`) {
+		t.Fatal("non-initial pages must stay thin")
 	}
 	if !strings.Contains(string(page), `data-doc-href="`) {
 		t.Fatal("thin document shell missing payload href")

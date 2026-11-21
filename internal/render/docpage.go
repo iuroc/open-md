@@ -20,6 +20,7 @@ type DocPageData struct {
 	RootKey          string
 	Href             string
 	Payload          string
+	InlineSection    bool
 	HasFilesPanel    bool
 	Doc              Document
 	VersionLabel     string
