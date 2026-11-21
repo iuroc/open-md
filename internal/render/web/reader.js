@@ -1202,6 +1202,9 @@
       return;
     }
     event.preventDefault();
+    if (link.closest("#doc-list")) {
+      closeMobileSidebar();
+    }
     saveBodyScroll();
     var parts = splitDocHref(href);
     var treePath = link.getAttribute("data-tree-path") || treePathForFile(parts.file);
@@ -1338,6 +1341,7 @@
       if (currentMode() === "source") {
         applyMode("render", true);
       }
+      closeMobileSidebar();
     });
   }
 

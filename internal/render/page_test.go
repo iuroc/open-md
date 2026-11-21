@@ -741,6 +741,31 @@ func TestReaderJSPersistsScrollPositions(t *testing.T) {
 	}
 }
 
+func TestReaderJSClosesMobileSidebarOnNavigation(t *testing.T) {
+	tocStart := strings.Index(readerJS, `toc.addEventListener("click"`)
+	if tocStart < 0 {
+		t.Fatal("toc click handler missing")
+	}
+	tocBlock := readerJS[tocStart:]
+	if end := strings.Index(tocBlock, "});"); end >= 0 {
+		tocBlock = tocBlock[:end]
+	}
+	if !strings.Contains(tocBlock, "closeMobileSidebar();") {
+		t.Fatal("clicking an outline item must close the mobile sidebar")
+	}
+	treeStart := strings.Index(readerJS, `link.closest("#doc-list")`)
+	if treeStart < 0 {
+		t.Fatal("document tree navigation branch missing")
+	}
+	treeBlock := readerJS[treeStart:]
+	if end := strings.Index(treeBlock, "}"); end >= 0 {
+		treeBlock = treeBlock[:end]
+	}
+	if !strings.Contains(treeBlock, "closeMobileSidebar();") {
+		t.Fatal("clicking a tree document must close the mobile sidebar")
+	}
+}
+
 func TestReaderCSSDisablesTreeLinkDragAndUnderline(t *testing.T) {
 	for _, want := range []string{
 		"#doc-list a:hover",
