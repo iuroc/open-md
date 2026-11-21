@@ -1,4 +1,21 @@
-<!doctype html>
+{{define "docsection"}}<section class="doc-section markdown-body" id="{{.Doc.ID}}" data-doc-id="{{.Doc.ID}}" data-title="{{.Doc.Title}}" data-path="{{.Doc.Path}}" data-dir="{{.Doc.Dir}}" data-has-source="{{.Doc.HasSource}}">
+  <template class="toc-template">
+    {{range .Doc.TOC}}<a class="toc-link toc-level-{{.Level}}" href="#{{.ID}}" data-toc-id="{{.ID}}">{{.Text}}</a>{{end}}
+  </template>
+  <div class="doc-rendered">{{.Doc.HTML}}</div>
+  <div class="source-view">
+    <div class="source-toolbar">
+      <span class="source-filename" title="{{.Doc.RelPath}}">{{.Doc.RelPath}}</span>
+      {{if .Doc.HasSource}}<button type="button" class="source-copy panel-action" aria-label="复制当前文档源码">复制源码</button>{{end}}
+      <span class="source-copy-status" role="status" aria-live="polite"></span>
+    </div>
+    {{if .Doc.HasSource}}
+    <pre class="chroma light source-code" tabindex="0">{{.Doc.SourceHTML}}</pre>
+    {{else}}
+    <p class="source-empty">该文档没有可显示的源码。</p>
+    {{end}}
+  </div>
+</section>{{end}}<!doctype html>
 <!-- Body styles: github-markdown-css (MIT), Copyright (c) Sindre Sorhus. See THIRD_PARTY_NOTICES.md. -->
 <html lang="zh-CN" data-theme="blue">
 <head>
@@ -171,24 +188,7 @@
     </header>
 
     <div id="doc-content">
-      <section class="doc-section markdown-body" id="{{.Doc.ID}}" data-doc-id="{{.Doc.ID}}" data-title="{{.Doc.Title}}" data-path="{{.Doc.Path}}" data-dir="{{.Doc.Dir}}" data-has-source="{{.Doc.HasSource}}">
-        <template class="toc-template">
-          {{range .Doc.TOC}}<a class="toc-link toc-level-{{.Level}}" href="#{{.ID}}" data-toc-id="{{.ID}}">{{.Text}}</a>{{end}}
-        </template>
-        <div class="doc-rendered">{{.Doc.HTML}}</div>
-        <div class="source-view">
-          <div class="source-toolbar">
-            <span class="source-filename" title="{{.Doc.RelPath}}">{{.Doc.RelPath}}</span>
-            {{if .Doc.HasSource}}<button type="button" class="source-copy panel-action" aria-label="复制当前文档源码">复制源码</button>{{end}}
-            <span class="source-copy-status" role="status" aria-live="polite"></span>
-          </div>
-          {{if .Doc.HasSource}}
-          <pre class="chroma light source-code" tabindex="0">{{.Doc.SourceHTML}}</pre>
-          {{else}}
-          <p class="source-empty">该文档没有可显示的源码。</p>
-          {{end}}
-        </div>
-      </section>
+      {{template "docsection" .}}
     </div>
   </main>
 </div>

@@ -187,7 +187,7 @@ func BuildDirSite(dirPath string, opts SiteOptions) (*Site, error) {
 			Size:    doc.Size,
 		}
 		entry, ok := entryByPath[pathKey(doc.Path)]
-		if ok && entry.MTime == sd.MTime && entry.Size == sd.Size && fileExists(filepath.Join(cacheDir, entry.Href)) {
+		if ok && entry.MTime == sd.MTime && entry.Size == sd.Size && cacheDocReady(cacheDir, entry.Href) {
 			sd.Title = entry.Title
 			sd.Links = entry.Links
 			sd.Href = entry.Href
@@ -217,9 +217,6 @@ func BuildDirSite(dirPath string, opts SiteOptions) (*Site, error) {
 	hasFilesPanel := true
 	site := &Site{Warnings: warnings, Pages: len(all)}
 	if err := renderDocs(cacheDir, "dir", rootKey, all, knownDocs, hasFilesPanel); err != nil {
-		return nil, err
-	}
-	if err := ensureDocPayloads(cacheDir, all); err != nil {
 		return nil, err
 	}
 
@@ -296,7 +293,7 @@ func BuildFileSite(filePath string, opts SiteOptions) (*Site, error) {
 		MTime:   info.ModTime().UnixNano(),
 		Size:    info.Size(),
 	}
-	if entry, ok := entryByPath[pathKey(abs)]; ok && entry.MTime == primaryDoc.MTime && entry.Size == primaryDoc.Size && fileExists(filepath.Join(cacheDir, entry.Href)) {
+	if entry, ok := entryByPath[pathKey(abs)]; ok && entry.MTime == primaryDoc.MTime && entry.Size == primaryDoc.Size && cacheDocReady(cacheDir, entry.Href) {
 		primaryDoc.Title = entry.Title
 		primaryDoc.Links = entry.Links
 		primaryDoc.Href = entry.Href
@@ -322,9 +319,6 @@ func BuildFileSite(filePath string, opts SiteOptions) (*Site, error) {
 	}
 	hasFilesPanel := len(linked) > 0
 	if err := renderDocs(cacheDir, "file", rootKey, all, knownDocs, hasFilesPanel); err != nil {
-		return nil, err
-	}
-	if err := ensureDocPayloads(cacheDir, all); err != nil {
 		return nil, err
 	}
 	linkedDocs := make([]Document, 0, len(linked))
@@ -415,7 +409,7 @@ func collectLinkedDocs(primary []*siteDoc, primaryPaths map[string]bool, entries
 			sd.RelPath = filepath.Base(target.Path)
 		}
 		entry, ok := entries[pathKey(target.Path)]
-		if ok && entry.MTime == sd.MTime && entry.Size == sd.Size && fileExists(filepath.Join(cacheDir, entry.Href)) {
+		if ok && entry.MTime == sd.MTime && entry.Size == sd.Size && cacheDocReady(cacheDir, entry.Href) {
 			sd.Title = entry.Title
 			sd.Href = entry.Href
 		} else {
@@ -532,16 +526,22 @@ func renderOneDoc(cacheDir, mode, rootKey string, doc *siteDoc, knownDocs map[st
 			rendered.HasSource = true
 			rendered.SourceHTML = highlightSource(doc.Source)
 			document = *rendered
+			document.Dir = filepath.Dir(doc.Path)
 			doc.Title = rendered.Title
 		}
 	}
-	html, err := RenderDocPage(DocPageData{
+	data := DocPageData{
 		Title:         document.Title,
 		Mode:          mode,
 		RootKey:       rootKey,
 		HasFilesPanel: hasFilesPanel,
 		Doc:           document,
-	})
+	}
+	html, err := RenderDocPage(data)
+	if err != nil {
+		return err
+	}
+	section, err := RenderDocSection(data)
 	if err != nil {
 		return err
 	}
@@ -549,7 +549,7 @@ func renderOneDoc(cacheDir, mode, rootKey string, doc *siteDoc, knownDocs map[st
 	if err := writeAtomic(filepath.Join(cacheDir, doc.Href), html); err != nil {
 		return err
 	}
-	return writeDocPayload(cacheDir, doc.Href, html)
+	return writeDocPayload(cacheDir, doc.Href, document, section)
 }
 
 func pendingWork(docs []scan.Document, manifest siteManifest, cacheDir string) (int, int64) {
@@ -558,7 +558,7 @@ func pendingWork(docs []scan.Document, manifest siteManifest, cacheDir string) (
 	var bytes int64
 	for _, doc := range docs {
 		entry, ok := entries[pathKey(doc.Path)]
-		if !ok || entry.MTime != doc.ModTime || entry.Size != doc.Size || !fileExists(filepath.Join(cacheDir, entry.Href)) {
+		if !ok || entry.MTime != doc.ModTime || entry.Size != doc.Size || !cacheDocReady(cacheDir, entry.Href) {
 			pending++
 			bytes += doc.Size
 		}
@@ -568,7 +568,7 @@ func pendingWork(docs []scan.Document, manifest siteManifest, cacheDir string) (
 			continue
 		}
 		info, err := os.Stat(entry.Path)
-		if err != nil || info.ModTime().UnixNano() != entry.MTime || info.Size() != entry.Size || !fileExists(filepath.Join(cacheDir, entry.Href)) {
+		if err != nil || info.ModTime().UnixNano() != entry.MTime || info.Size() != entry.Size || !cacheDocReady(cacheDir, entry.Href) {
 			pending++
 			bytes += entry.Size
 		}
@@ -689,7 +689,19 @@ func docPayloadHref(href string) string {
 	return strings.TrimSuffix(href, ".html") + ".js"
 }
 
-func writeDocPayload(cacheDir, href string, html []byte) error {
+func cacheDocReady(cacheDir, href string) bool {
+	return fileExists(filepath.Join(cacheDir, href)) && fileExists(filepath.Join(cacheDir, docPayloadHref(href)))
+}
+
+type docPayload struct {
+	Title       string `json:"title"`
+	Path        string `json:"path"`
+	Dir         string `json:"dir"`
+	RelPath     string `json:"relPath"`
+	SectionHTML string `json:"sectionHTML"`
+}
+
+func writeDocPayload(cacheDir, href string, doc Document, section []byte) error {
 	key, err := json.Marshal(docPayloadHref(href))
 	if err != nil {
 		return err
@@ -700,27 +712,16 @@ func writeDocPayload(cacheDir, href string, html []byte) error {
 	buf.WriteString("]=")
 	encoder := json.NewEncoder(&buf)
 	encoder.SetEscapeHTML(false)
-	if err := encoder.Encode(string(html)); err != nil {
+	if err := encoder.Encode(docPayload{
+		Title:       doc.Title,
+		Path:        doc.Path,
+		Dir:         doc.Dir,
+		RelPath:     doc.RelPath,
+		SectionHTML: string(section),
+	}); err != nil {
 		return err
 	}
 	return writeAtomic(filepath.Join(cacheDir, docPayloadHref(href)), buf.Bytes())
-}
-
-func ensureDocPayloads(cacheDir string, docs []*siteDoc) error {
-	for _, doc := range docs {
-		payloadPath := filepath.Join(cacheDir, docPayloadHref(doc.Href))
-		if fileExists(payloadPath) {
-			continue
-		}
-		html, err := os.ReadFile(filepath.Join(cacheDir, doc.Href))
-		if err != nil {
-			continue
-		}
-		if err := writeDocPayload(cacheDir, doc.Href, html); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func prunePages(cacheDir string, docs []*siteDoc) {

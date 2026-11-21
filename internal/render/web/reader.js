@@ -819,14 +819,12 @@
     }
   }
 
-  function replaceSections(html, anchor) {
-    var parsed = new DOMParser().parseFromString(html, "text/html");
-    var incoming = parsed.getElementById("doc-content");
+  function replaceSections(page, anchor) {
     var content = document.getElementById("doc-content");
-    if (!incoming || !content) {
+    if (!page || !page.sectionHTML || !content) {
       return false;
     }
-    content.innerHTML = incoming.innerHTML;
+    content.innerHTML = page.sectionHTML;
     sections = Array.prototype.slice.call(document.querySelectorAll(".doc-section"));
     showDoc("doc", anchor, false);
     return true;
@@ -850,11 +848,11 @@
   function loadSoftPage(file, anchor, treePath, generation) {
     var payload = payloadHref(file);
     var pages = window.OPENMD_PAGES || {};
-    var apply = function (html) {
+    var apply = function (page) {
       if (generation !== navGeneration) {
         return;
       }
-      if (!replaceSections(html, anchor)) {
+      if (!replaceSections(page, anchor)) {
         window.location.href = file + (anchor ? "#" + anchor : "");
         return;
       }

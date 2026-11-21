@@ -29,7 +29,7 @@ type DocPageData struct {
 	Favicon          template.URL
 }
 
-func RenderDocPage(data DocPageData) ([]byte, error) {
+func prepareDocPageData(data DocPageData) DocPageData {
 	if data.Title == "" {
 		data.Title = data.Doc.Title
 	}
@@ -50,9 +50,24 @@ func RenderDocPage(data DocPageData) ([]byte, error) {
 	}
 	data.ReleaseAvailable = buildinfo.IsReleaseBuild()
 	data.ReleaseURL = buildinfo.ReleaseURL
+	return data
+}
+
+func RenderDocPage(data DocPageData) ([]byte, error) {
+	data = prepareDocPageData(data)
 
 	var buf bytes.Buffer
 	if err := docPageTemplate.Execute(&buf, data); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+func RenderDocSection(data DocPageData) ([]byte, error) {
+	data = prepareDocPageData(data)
+
+	var buf bytes.Buffer
+	if err := docPageTemplate.ExecuteTemplate(&buf, "docsection", data); err != nil {
 		return nil, err
 	}
 	return buf.Bytes(), nil

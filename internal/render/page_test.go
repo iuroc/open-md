@@ -398,7 +398,7 @@ func TestReaderJSSupportsSoftDocumentNavigation(t *testing.T) {
 	for _, want := range []string{
 		"isDocPageLink",
 		"window.OPENMD_PAGES",
-		"new DOMParser()",
+		"sectionHTML",
 		"loadSoftPage",
 		"navGeneration",
 		"hashchange",
@@ -407,6 +407,9 @@ func TestReaderJSSupportsSoftDocumentNavigation(t *testing.T) {
 		if !strings.Contains(readerJS, want) {
 			t.Fatalf("reader.js missing %q", want)
 		}
+	}
+	if strings.Contains(readerJS, "DOMParser") {
+		t.Fatal("payloads must not be parsed as full documents")
 	}
 }
 
