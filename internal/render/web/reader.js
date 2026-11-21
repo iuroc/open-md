@@ -747,12 +747,12 @@
     if (!target || !target.closest) {
       return;
     }
-    var link = target.closest("a.tree-file-link");
+    var link = target.closest("#doc-list a[href]");
     if (!link) {
       return;
     }
     var href = link.getAttribute("href");
-    if (!href) {
+    if (!href || href.charAt(0) === "#" || link.hasAttribute("download") || link.getAttribute("target")) {
       return;
     }
     if (event.detail === 0) {
@@ -761,7 +761,7 @@
     }
     event.preventDefault();
     pendingNavHref = href;
-    var active = docList ? docList.querySelector(".tree-file-link.active") : null;
+    var active = docList ? docList.querySelector("a.active") : null;
     if (active && active !== link) {
       active.classList.remove("active");
     }
