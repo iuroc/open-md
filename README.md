@@ -153,3 +153,7 @@ OpenMD.exe --uninstall
 构建、测试、发布和内部实现说明见 [AGENTS.md](AGENTS.md)。
 
 正文样式使用 [github-markdown-css](https://github.com/sindresorhus/github-markdown-css)（MIT），许可声明见 `THIRD_PARTY_NOTICES.md`。
+
+## License
+
+本项目使用 [MIT](LICENSE) 许可证，Copyright (c) 2026 iuroc。
