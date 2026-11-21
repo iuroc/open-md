@@ -69,6 +69,102 @@ func TestGenerateIsDeterministic(t *testing.T) {
 	compareTrees(t, first, second)
 }
 
+func TestLightFixtureStructure(t *testing.T) {
+	dir := t.TempDir()
+	if err := Generate(Options{Out: dir}); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		"CHECKLIST.md", markerName,
+		"01-headings.md", "05-code.md", "06-footnotes.md",
+		"07-footnotes-peer.md", "08-anchors.md", "09-links-target.md",
+		"10-frontmatter-yaml.md", "11-frontmatter-toml.md", "12-hr-mid.md",
+		"13-links.md", "14-images.md", "15-broken.md", "16-empty.md",
+		"17-bom.md", "18-unicode.md", "19-html.md", "20-long-line.md",
+		"100%.md", "foo%bar.md", "a b.md", "中文文件名.md",
+		"UPPER.MARKDOWN", "hash#name.md",
+		"fallback/link.md", "fallback/a b.md",
+		"literal/link.md", "literal/a%20b.md", "literal/a b.md",
+		"sub/nested.md",
+		"tree/root.md", "tree/guides/deep/deeper/leaf.md",
+		"tree/中文目录/子目录/更多.md",
+		"tree/no-md/note.txt", "tree/mixed/logo.png",
+		"tree/duplicates/a.md", "tree/duplicates/b/a.md",
+		"tree/sort-order/10.md",
+		"limits-count/doc-001.md", "limits-count/doc-501.md",
+		"common/pixel.png", "common/手册.pdf",
+	} {
+		if _, err := os.Stat(filepath.Join(dir, filepath.FromSlash(want))); err != nil {
+			t.Errorf("missing %s: %v", want, err)
+		}
+	}
+	for _, absent := range []string{
+		"limits/skip/big-33mib.md", "limits/total/01.md",
+		"limits/all-big/big.md", "limits/at-limit/big-32mib.md",
+	} {
+		if _, err := os.Stat(filepath.Join(dir, filepath.FromSlash(absent))); !os.IsNotExist(err) {
+			t.Errorf("%s must not exist without -big", absent)
+		}
+	}
+	info, err := os.Stat(filepath.Join(dir, "tree", "empty"))
+	if err != nil || !info.IsDir() {
+		t.Fatal("tree/empty must be an empty directory")
+	}
+	if size := mustSize(t, filepath.Join(dir, "16-empty.md")); size != 0 {
+		t.Fatalf("16-empty.md must be empty, got %d", size)
+	}
+	if !bytes.HasPrefix(mustRead(t, filepath.Join(dir, "17-bom.md")), []byte{0xEF, 0xBB, 0xBF}) {
+		t.Fatal("17-bom.md must start with UTF-8 BOM")
+	}
+}
+
+func TestLightFixtureContent(t *testing.T) {
+	dir := t.TempDir()
+	if err := Generate(Options{Out: dir}); err != nil {
+		t.Fatal(err)
+	}
+	yaml := string(mustRead(t, filepath.Join(dir, "10-frontmatter-yaml.md")))
+	if !bytes.HasPrefix([]byte(yaml), []byte("---\n")) || !bytes.Contains([]byte(yaml), []byte("# 正文标题")) {
+		t.Fatalf("unexpected YAML front matter fixture: %q", yaml[:min(len(yaml), 80)])
+	}
+	if !bytes.Contains(mustRead(t, filepath.Join(dir, "fallback", "link.md")), []byte("a%20b.md")) {
+		t.Fatal("fallback/link.md must link a%20b.md")
+	}
+	if !bytes.Contains(mustRead(t, filepath.Join(dir, "15-broken.md")), []byte("101%.md")) {
+		t.Fatal("15-broken.md must reference 101%.md")
+	}
+	if !bytes.Contains(mustRead(t, filepath.Join(dir, "14-images.md")), []byte("common/pixel.png")) {
+		t.Fatal("14-images.md must reference common/pixel.png")
+	}
+	target := mustRead(t, filepath.Join(dir, "09-links-target.md"))
+	if !bytes.Contains(target, []byte("## Usage")) || !bytes.Contains(target, []byte("# 中文标题")) {
+		t.Fatal("09-links-target.md must expose Usage and 中文标题")
+	}
+	dupA := mustRead(t, filepath.Join(dir, "tree", "duplicates", "a.md"))
+	dupB := mustRead(t, filepath.Join(dir, "tree", "duplicates", "b", "a.md"))
+	if bytes.Equal(dupA, dupB) {
+		t.Fatal("duplicate-name fixtures must differ")
+	}
+}
+
+func mustRead(t *testing.T, path string) []byte {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return data
+}
+
+func mustSize(t *testing.T, path string) int64 {
+	t.Helper()
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return info.Size()
+}
+
 func compareTrees(t *testing.T, a, b string) {
 	t.Helper()
 	filesA := collectFiles(t, a)

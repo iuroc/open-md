@@ -38,6 +38,7 @@ type Fixture struct {
 	Path  string
 	Data  []byte
 	Write func(io.Writer) error
+	Dir   bool
 }
 
 func Generate(opts Options) error {
@@ -59,14 +60,9 @@ func Generate(opts Options) error {
 			return err
 		}
 	}
-	if err := os.WriteFile(filepath.Join(opts.Out, "CHECKLIST.md"), []byte("# OpenMD 验收清单\n\n生成中……\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(opts.Out, "CHECKLIST.md"), Checklist(opts.Big), 0o644); err != nil {
 		return fmt.Errorf("写入验收清单: %w", err)
 	}
-	return nil
-}
-
-// fixtures is replaced by the real case list in a later task.
-func fixtures(opts Options) []Fixture {
 	return nil
 }
 
@@ -75,6 +71,9 @@ func writeFixture(root string, fixture Fixture) error {
 		return errors.New("案例路径为空")
 	}
 	path := filepath.Join(root, filepath.FromSlash(fixture.Path))
+	if fixture.Dir {
+		return os.MkdirAll(path, 0o755)
+	}
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
