@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"slices"
 	"testing"
+	"unicode/utf8"
 )
 
 func SmallTestSizes() BigSizes {
@@ -144,6 +145,56 @@ func TestLightFixtureContent(t *testing.T) {
 	dupB := mustRead(t, filepath.Join(dir, "tree", "duplicates", "b", "a.md"))
 	if bytes.Equal(dupA, dupB) {
 		t.Fatal("duplicate-name fixtures must differ")
+	}
+}
+
+func TestBigSizesDefaults(t *testing.T) {
+	got := DefaultBigSizes()
+	want := BigSizes{Oversize: 33 << 20, TotalFile: 11 << 19, AtLimit: 32 << 20}
+	if got != want {
+		t.Fatalf("got %+v want %+v", got, want)
+	}
+}
+
+func TestBigFixtureSizes(t *testing.T) {
+	dir := t.TempDir()
+	sizes := SmallTestSizes()
+	if err := Generate(Options{Out: dir, Big: true, Sizes: sizes}); err != nil {
+		t.Fatal(err)
+	}
+	checks := map[string]int64{
+		"limits/skip/big-33mib.md":     sizes.Oversize,
+		"limits/total/01.md":           sizes.TotalFile,
+		"limits/total/05.md":           sizes.TotalFile,
+		"limits/at-limit/big-32mib.md": sizes.AtLimit,
+		"limits/all-big/big.md":        sizes.Oversize,
+	}
+	for rel, want := range checks {
+		if got := mustSize(t, filepath.Join(dir, filepath.FromSlash(rel))); got != want {
+			t.Errorf("%s: got %d want %d", rel, got, want)
+		}
+	}
+	if !bytes.Equal(mustRead(t, filepath.Join(dir, "limits", "skip", "big-33mib.md")),
+		mustRead(t, filepath.Join(dir, "limits", "all-big", "big.md"))) {
+		t.Fatal("all-big must reuse the 33 MiB content")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "limits", "skip", "small.md")); err != nil {
+		t.Fatal("skip case needs a small neighbour document")
+	}
+}
+
+func TestWriteRepeatedMarkdownExactSize(t *testing.T) {
+	for _, size := range []int64{0, 1, 1023, 1 << 20} {
+		var buf bytes.Buffer
+		if err := writeRepeatedMarkdown(&buf, size); err != nil {
+			t.Fatal(err)
+		}
+		if int64(buf.Len()) != size {
+			t.Fatalf("size %d: wrote %d", size, buf.Len())
+		}
+		if !utf8.Valid(buf.Bytes()) {
+			t.Fatalf("size %d: output is not valid UTF-8", size)
+		}
 	}
 }
 

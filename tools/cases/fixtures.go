@@ -9,7 +9,11 @@ import (
 const pixelPNGBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
 
 func fixtures(opts Options) []Fixture {
-	return LightFixtures()
+	files := LightFixtures()
+	if opts.Big {
+		files = append(files, BigFixtures(opts.Sizes)...)
+	}
+	return files
 }
 
 func fixture(path, content string) Fixture {

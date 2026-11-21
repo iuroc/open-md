@@ -39,6 +39,9 @@ type Fixture struct {
 	Data  []byte
 	Write func(io.Writer) error
 	Dir   bool
+	// Link, when set, creates a hard link (or a copy) from this relative
+	// source path instead of writing new content.
+	Link string
 }
 
 func Generate(opts Options) error {
@@ -76,6 +79,9 @@ func writeFixture(root string, fixture Fixture) error {
 	}
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
+	}
+	if fixture.Link != "" {
+		return linkOrCopy(filepath.Join(root, filepath.FromSlash(fixture.Link)), path)
 	}
 	file, err := os.Create(path)
 	if err != nil {
