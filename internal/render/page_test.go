@@ -389,6 +389,30 @@ func TestReaderCSSSourceUsesBodyFontSize(t *testing.T) {
 	}
 }
 
+func TestReaderCSSColorsMarkdownTokens(t *testing.T) {
+	for _, selector := range []string{
+		".doc-section .chroma.light .gh,",
+		".doc-section .chroma.light .gu,",
+		".doc-section .chroma.light .gs,",
+		".doc-section .chroma.light .ge,",
+		".doc-section .chroma.light .na,",
+	} {
+		if !strings.Contains(readerCSS, selector) {
+			t.Fatalf("missing Markdown token selector %q", selector)
+		}
+	}
+	heading := readerCSSRule(t, ".doc-section .chroma.light .gh,")
+	for _, want := range []string{"color: var(--accent);", "font-weight: 700;"} {
+		if !strings.Contains(heading, want) {
+			t.Fatalf("heading rule missing %q: %s", want, heading)
+		}
+	}
+	emphasis := readerCSSRule(t, ".doc-section .chroma.light .ge,")
+	if !strings.Contains(emphasis, "font-style: italic;") {
+		t.Fatalf("emphasis rule missing italic: %s", emphasis)
+	}
+}
+
 func TestReaderCSSKeepsTableHeadersOnOneLine(t *testing.T) {
 	if !strings.Contains(readerCSS, ".markdown-body table th {") {
 		t.Fatal("table header rule missing")

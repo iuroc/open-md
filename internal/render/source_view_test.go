@@ -39,6 +39,15 @@ func TestHighlightSourceProducesTokenHTML(t *testing.T) {
 	}
 }
 
+func TestHighlightSourceTokenClassesForMarkdownSyntax(t *testing.T) {
+	got := string(highlightSource([]byte("# 标题\n\n**粗体** 和 *斜体* 和 [链接](https://example.com)\n")))
+	for _, want := range []string{`class="gh"`, `class="gs"`, `class="ge"`, `class="na"`} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("missing %q in %q", want, got)
+		}
+	}
+}
+
 func TestHighlightSourceEmptyInput(t *testing.T) {
 	if got := string(highlightSource(nil)); got != "" {
 		t.Fatalf("empty source = %q, want empty", got)

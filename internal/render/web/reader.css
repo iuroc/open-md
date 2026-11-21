@@ -730,6 +730,33 @@ body.full-width #doc-content {
   background-color: var(--bgColor-muted);
 }
 
+.doc-section .chroma.light .gh,
+.doc-section .chroma.dark .gh {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.doc-section .chroma.light .gu,
+.doc-section .chroma.dark .gu {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.doc-section .chroma.light .gs,
+.doc-section .chroma.dark .gs {
+  font-weight: 700;
+}
+
+.doc-section .chroma.light .ge,
+.doc-section .chroma.dark .ge {
+  font-style: italic;
+}
+
+.doc-section .chroma.light .na,
+.doc-section .chroma.dark .na {
+  color: var(--accent);
+}
+
 .source-view {
   display: none;
 }
