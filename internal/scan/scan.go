@@ -25,11 +25,32 @@ var DefaultLimits = Limits{
 	MaxEntries:    20000,
 }
 
+// QuickLimits applies the "quick mode" selection used when the user declines a
+// full large-directory load.
+var QuickLimits = Limits{
+	MaxDocs:       3000,
+	MaxTotalBytes: 8 << 20,
+	MaxFileBytes:  32 << 20,
+	MaxDepth:      12,
+	MaxEntries:    100000,
+}
+
+// UnlimitedLimits removes business caps while still skipping symlinks,
+// reparse points, unreadable directories, and known heavy directories.
+var UnlimitedLimits = Limits{
+	MaxDocs:       -1,
+	MaxTotalBytes: -1,
+	MaxFileBytes:  -1,
+	MaxDepth:      -1,
+	MaxEntries:    -1,
+}
+
 type Document struct {
 	Path    string
 	Name    string
 	RelPath string
 	Size    int64
+	ModTime int64
 }
 
 type SkippedDocument struct {
@@ -68,6 +89,7 @@ type candidate struct {
 	name    string
 	relPath string
 	size    int64
+	modTime int64
 	depth   int
 }
 
@@ -79,7 +101,7 @@ func Directory(dir string, limits Limits) (*Result, error) {
 	abs = filepath.Clean(abs)
 	limits = withDefaults(limits)
 	perFileBudget := limits.MaxFileBytes
-	if perFileBudget > limits.MaxTotalBytes {
+	if perFileBudget > 0 && limits.MaxTotalBytes > 0 && perFileBudget > limits.MaxTotalBytes {
 		perFileBudget = limits.MaxTotalBytes
 	}
 
@@ -107,7 +129,7 @@ func Directory(dir string, limits Limits) (*Result, error) {
 				return nil
 			}
 			visited++
-			if visited > limits.MaxEntries {
+			if limits.MaxEntries >= 0 && visited > limits.MaxEntries {
 				result.Warnings = append(result.Warnings, fmt.Sprintf(
 					"目录项过多，扫描范围已截断（上限 %d 项）", limits.MaxEntries,
 				))
@@ -123,7 +145,7 @@ func Directory(dir string, limits Limits) (*Result, error) {
 				if ignoredDirectories[strings.ToLower(name)] {
 					continue
 				}
-				if depth+1 > limits.MaxDepth {
+				if limits.MaxDepth >= 0 && depth+1 > limits.MaxDepth {
 					if !depthWarned {
 						result.Warnings = append(result.Warnings, fmt.Sprintf(
 							"部分子目录超过最大扫描深度（%d 层），已跳过", limits.MaxDepth,
@@ -147,7 +169,7 @@ func Directory(dir string, limits Limits) (*Result, error) {
 				continue
 			}
 			rel := relPath(abs, full)
-			if info.Size() > perFileBudget {
+			if perFileBudget > 0 && info.Size() > perFileBudget {
 				result.Skipped = append(result.Skipped, SkippedDocument{
 					Path:    full,
 					Name:    name,
@@ -164,6 +186,7 @@ func Directory(dir string, limits Limits) (*Result, error) {
 				name:    name,
 				relPath: rel,
 				size:    info.Size(),
+				modTime: info.ModTime().UnixNano(),
 				depth:   depth,
 			})
 		}
@@ -190,11 +213,11 @@ func Directory(dir string, limits Limits) (*Result, error) {
 
 	var total int64
 	for _, c := range candidates {
-		if len(result.Documents) >= limits.MaxDocs {
+		if limits.MaxDocs >= 0 && len(result.Documents) >= limits.MaxDocs {
 			result.Truncated = true
 			break
 		}
-		if total+c.size > limits.MaxTotalBytes {
+		if limits.MaxTotalBytes >= 0 && total+c.size > limits.MaxTotalBytes {
 			result.Truncated = true
 			break
 		}
@@ -204,25 +227,26 @@ func Directory(dir string, limits Limits) (*Result, error) {
 			Name:    c.name,
 			RelPath: c.relPath,
 			Size:    c.size,
+			ModTime: c.modTime,
 		})
 	}
 	return result, nil
 }
 
 func withDefaults(limits Limits) Limits {
-	if limits.MaxDocs <= 0 {
+	if limits.MaxDocs == 0 {
 		limits.MaxDocs = DefaultLimits.MaxDocs
 	}
-	if limits.MaxTotalBytes <= 0 {
+	if limits.MaxTotalBytes == 0 {
 		limits.MaxTotalBytes = DefaultLimits.MaxTotalBytes
 	}
-	if limits.MaxFileBytes <= 0 {
+	if limits.MaxFileBytes == 0 {
 		limits.MaxFileBytes = DefaultLimits.MaxFileBytes
 	}
-	if limits.MaxDepth <= 0 {
+	if limits.MaxDepth == 0 {
 		limits.MaxDepth = DefaultLimits.MaxDepth
 	}
-	if limits.MaxEntries <= 0 {
+	if limits.MaxEntries == 0 {
 		limits.MaxEntries = DefaultLimits.MaxEntries
 	}
 	return limits

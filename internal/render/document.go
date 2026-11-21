@@ -46,6 +46,7 @@ type RenderOptions struct {
 	IDPrefix     string
 	CurrentDocID string
 	KnownDocs    map[string]string
+	PageLinks    bool
 }
 
 func newMarkdown(docID string) goldmark.Markdown {
@@ -164,13 +165,13 @@ func RenderMarkdown(source []byte, sourcePath string, opts RenderOptions) (*Docu
 		}
 		switch typed := node.(type) {
 		case *ast.Image:
-			rewritten, err := RewriteURL(string(typed.Destination), baseDir, ImageURL, opts.KnownDocs, opts.CurrentDocID)
+			rewritten, err := rewriteURL(string(typed.Destination), baseDir, ImageURL, opts.KnownDocs, opts.CurrentDocID, opts.PageLinks)
 			if err != nil {
 				return ast.WalkStop, err
 			}
 			typed.Destination = []byte(rewritten)
 		case *ast.Link:
-			rewritten, err := RewriteURL(string(typed.Destination), baseDir, LinkURL, opts.KnownDocs, opts.CurrentDocID)
+			rewritten, err := rewriteURL(string(typed.Destination), baseDir, LinkURL, opts.KnownDocs, opts.CurrentDocID, opts.PageLinks)
 			if err != nil {
 				return ast.WalkStop, err
 			}

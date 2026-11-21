@@ -255,14 +255,25 @@ a:hover {
 .tree-root {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 0;
 }
 
 .tree-children {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  padding-left: 12px;
+  gap: 0;
+  padding-left: 14px;
+}
+
+.tree-children::before {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 6px;
+  width: 1px;
+  background: color-mix(in srgb, var(--border) 78%, transparent);
+  content: "";
 }
 
 .tree-children[hidden] {
@@ -274,29 +285,65 @@ a:hover {
 }
 
 .tree-toggle,
-.tree-file-button {
+.tree-file-button,
+.tree-file-link {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0;
   width: 100%;
   min-width: 0;
-  padding: 6px 8px;
+  height: 29px;
+  padding: 0 8px;
   border: 0;
-  border-radius: 6px;
+  border-radius: 5px;
   background: transparent;
   color: var(--fg);
   cursor: pointer;
   font: inherit;
+  font-size: 13px;
   text-align: left;
+  text-decoration: none;
+}
+
+.tree-toggle {
+  font-weight: 600;
+}
+
+.tree-toggle .tree-label {
+  margin-left: 8px;
+}
+
+.tree-file-button,
+.tree-file-link {
+  position: relative;
+  padding-left: 21px;
+  color: var(--fg-muted);
+  font-weight: 400;
+}
+
+.tree-file-button::before,
+.tree-file-link::before {
+  position: absolute;
+  top: 50%;
+  left: 9px;
+  width: 4px;
+  height: 4px;
+  margin-top: -2px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.45;
+  content: "";
 }
 
 .tree-toggle:hover,
-.tree-file-button:hover {
+.tree-file-button:hover,
+.tree-file-link:hover {
   background: var(--bg-hover);
 }
 
 .tree-toggle:focus-visible,
-.tree-file-button:focus-visible {
+.tree-file-button:focus-visible,
+.tree-file-link:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -308,20 +355,23 @@ a:hover {
   border-left: 5px solid currentColor;
   border-top: 4px solid transparent;
   border-bottom: 4px solid transparent;
-  transition: transform 0.15s ease;
+  transition: transform 0.12s ease;
 }
 
 .tree-toggle[aria-expanded="true"] .tree-caret {
   transform: rotate(90deg);
 }
 
-.tree-file-button {
-  padding-left: 24px;
+.tree-file-button.active,
+.tree-file-link.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  box-shadow: inset 2px 0 0 var(--accent);
 }
 
-.tree-file-button.active {
-  background: var(--accent);
-  color: var(--accent-fg);
+.tree-file-button.active::before,
+.tree-file-link.active::before {
+  opacity: 1;
 }
 
 .tree-label {
@@ -338,9 +388,34 @@ a:hover {
   letter-spacing: 0.04em;
 }
 
+.tree-warning {
+  margin: 12px 8px 4px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--warning-bg);
+  color: var(--fg);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.tree-warning p {
+  margin: 0;
+}
+
+.tree-warning p + p {
+  margin-top: 4px;
+}
+
 .linked-tree .doc-item {
   padding-top: 6px;
   padding-bottom: 6px;
+  text-decoration: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tree-caret {
+    transition: none;
+  }
 }
 
 .doc-item.linked .doc-path {
@@ -358,6 +433,7 @@ a:hover {
 }
 
 .doc-item {
+  display: block;
   width: 100%;
   padding: 8px 10px;
   border: 0;
@@ -367,6 +443,7 @@ a:hover {
   cursor: pointer;
   font: inherit;
   text-align: left;
+  text-decoration: none;
 }
 
 .doc-item:hover {
@@ -374,8 +451,9 @@ a:hover {
 }
 
 .doc-item.active {
-  background: var(--accent);
-  color: var(--accent-fg);
+  background: var(--accent-soft);
+  color: var(--accent);
+  box-shadow: inset 2px 0 0 var(--accent);
 }
 
 .doc-title {

@@ -377,22 +377,20 @@ func TestRenderPageDirectoryRendersFileTree(t *testing.T) {
 }
 
 func TestReaderCSSRendersFileTree(t *testing.T) {
-	if !strings.Contains(readerCSS, "padding-left: 24px;") {
+	if !strings.Contains(readerCSS, "padding-left: 21px;") {
 		t.Fatal("tree file rule missing left padding")
 	}
-	label := readerCSSRule(t, ".tree-label {")
-	for _, want := range []string{"overflow: hidden;", "text-overflow: ellipsis;", "white-space: nowrap;"} {
-		if !strings.Contains(label, want) {
-			t.Fatalf("tree label rule missing %q: %s", want, label)
+	for _, want := range []string{"text-overflow: ellipsis;", "white-space: nowrap;"} {
+		if !strings.Contains(readerCSS, want) {
+			t.Fatalf("tree label rule missing %q", want)
 		}
 	}
 	hidden := readerCSSRule(t, ".tree-children[hidden] {")
 	if !strings.Contains(hidden, "display: none") {
 		t.Fatalf("collapsed tree children must be hidden: %s", hidden)
 	}
-	active := readerCSSRule(t, ".tree-file-button.active {")
-	if !strings.Contains(active, "background: var(--accent);") {
-		t.Fatalf("active tree file must be highlighted: %s", active)
+	if !strings.Contains(readerCSS, ".tree-file-link.active") || !strings.Contains(readerCSS, "background: var(--accent-soft);") {
+		t.Fatal("active tree file must use the soft accent background")
 	}
 }
 

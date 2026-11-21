@@ -14,8 +14,17 @@ const (
 	ChoiceUninstall
 )
 
+type LoadDecision int
+
+const (
+	LoadAll LoadDecision = iota
+	LoadQuick
+	LoadCancel
+)
+
 type Dialog interface {
 	Installer(installedPath string, installed bool) Choice
+	ConfirmLoad(message string) LoadDecision
 	Info(message string)
 	Error(message string)
 }
@@ -37,6 +46,18 @@ func (d *WindowsDialog) Installer(installedPath string, installed bool) Choice {
 		return ChoiceUninstall
 	default:
 		return ChoiceCancel
+	}
+}
+
+func (d *WindowsDialog) ConfirmLoad(message string) LoadDecision {
+	result := messageBox(message, "OpenMD", 0x00000003|0x00000020)
+	switch result {
+	case 6: // IDYES
+		return LoadAll
+	case 7: // IDNO
+		return LoadQuick
+	default:
+		return LoadCancel
 	}
 }
 

@@ -92,6 +92,54 @@ func TestCleanupKeepsNewestFifty(t *testing.T) {
 	}
 }
 
+func TestRenderRootIsStable(t *testing.T) {
+	m := New(t.TempDir())
+	a, err := m.RenderRoot("docs-abc123")
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := m.RenderRoot("docs-abc123")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if a != b {
+		t.Fatalf("render roots differ: %q and %q", a, b)
+	}
+	if info, err := os.Stat(a); err != nil || !info.IsDir() {
+		t.Fatalf("render root not created: %v", err)
+	}
+}
+
+func TestCleanupRemovesOldRenderedRoots(t *testing.T) {
+	base := t.TempDir()
+	now := time.Now()
+	m := New(base)
+	m.Now = func() time.Time { return now }
+	old, err := m.RenderRoot("old-root")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fresh, err := m.RenderRoot("fresh-root")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(old, now.Add(-8*24*time.Hour), now.Add(-8*24*time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(fresh, now, now); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Cleanup(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(old); !os.IsNotExist(err) {
+		t.Fatal("old rendered root not removed")
+	}
+	if _, err := os.Stat(fresh); err != nil {
+		t.Fatal("fresh rendered root removed")
+	}
+}
+
 func TestCleanupIgnoresUnrelatedEntries(t *testing.T) {
 	base := t.TempDir()
 	m := New(base)

@@ -4,6 +4,12 @@
   var sections = Array.prototype.slice.call(document.querySelectorAll(".doc-section"));
   var docButtons = Array.prototype.slice.call(document.querySelectorAll("[data-doc-target]"));
   var treeToggles = Array.prototype.slice.call(document.querySelectorAll("[data-tree-folder]"));
+  var docList = document.getElementById("doc-list");
+  var isDocPage = document.body.getAttribute("data-doc-page") === "true";
+  var rootKey = document.body.getAttribute("data-root-key") || "";
+  var activePath = document.body.getAttribute("data-active-path") || "";
+  var treeStorageKey = "openmd-tree:" + rootKey;
+  var sourceStorageKey = "openmd-source:" + rootKey;
   var tabButtons = Array.prototype.slice.call(document.querySelectorAll(".sidebar-tab"));
   var tabPanels = Array.prototype.slice.call(document.querySelectorAll(".tab-panel"));
   var toc = document.getElementById("toc");
@@ -360,7 +366,9 @@
   function scrollToAnchor(section, anchor) {
     var top = 0;
     if (anchor) {
-      var target = document.getElementById(section.getAttribute("data-doc-id") + "-" + anchor);
+      var target =
+        document.getElementById(anchor) ||
+        document.getElementById(section.getAttribute("data-doc-id") + "-" + anchor);
       if (target) {
         top = target.getBoundingClientRect().top + window.pageYOffset - 72;
       }
@@ -480,14 +488,156 @@
 
   for (var i = 0; i < treeToggles.length; i++) {
     treeToggles[i].addEventListener("click", function () {
-      var expanded = this.getAttribute("aria-expanded") === "true";
-      this.setAttribute("aria-expanded", expanded ? "false" : "true");
-      var folder = this.parentElement;
-      var children = folder ? folder.querySelector(".tree-children") : null;
-      if (children) {
-        children.hidden = expanded;
+      setFolderExpanded(this, this.getAttribute("aria-expanded") !== "true", true);
+    });
+  }
+
+  function readTreeExpanded() {
+    try {
+      return JSON.parse(sessionStorage.getItem(treeStorageKey) || "[]");
+    } catch (err) {
+      return [];
+    }
+  }
+
+  function saveTreeExpanded() {
+    if (!docList) {
+      return;
+    }
+    var paths = [];
+    var toggles = docList.querySelectorAll(".tree-toggle");
+    for (var i = 0; i < toggles.length; i++) {
+      if (toggles[i].getAttribute("aria-expanded") === "true") {
+        paths.push(toggles[i].getAttribute("data-tree-path"));
+      }
+    }
+    try {
+      sessionStorage.setItem(treeStorageKey, JSON.stringify(paths));
+    } catch (err) {}
+  }
+
+  function setFolderExpanded(toggle, expanded, persist) {
+    toggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+    var folder = toggle.parentElement;
+    var children = folder ? folder.querySelector(".tree-children") : null;
+    if (children) {
+      children.hidden = !expanded;
+    }
+    if (persist) {
+      saveTreeExpanded();
+    }
+  }
+
+  function expandTreeAncestors(element) {
+    var node = element.parentElement;
+    while (node && node !== docList) {
+      if (node.classList && node.classList.contains("tree-children")) {
+        node.hidden = false;
+        var folder = node.parentElement;
+        var toggle = folder ? folder.querySelector(".tree-toggle") : null;
+        if (toggle) {
+          toggle.setAttribute("aria-expanded", "true");
+        }
+      }
+      node = node.parentElement;
+    }
+  }
+
+  function markActiveTree() {
+    if (!docList || !activePath) {
+      return;
+    }
+    var links = docList.querySelectorAll(".tree-file-link, .doc-item[data-tree-path]");
+    for (var i = 0; i < links.length; i++) {
+      if (links[i].getAttribute("data-tree-path") !== activePath) {
+        continue;
+      }
+      links[i].classList.add("active");
+      links[i].setAttribute("aria-current", "page");
+      expandTreeAncestors(links[i]);
+      if (links[i].scrollIntoView) {
+        links[i].scrollIntoView({ block: "nearest" });
+      }
+      return;
+    }
+  }
+
+  function initTree() {
+    if (!docList || !window.OPENMD_TREE_HTML) {
+      return;
+    }
+    docList.innerHTML = window.OPENMD_TREE_HTML;
+    var stored = readTreeExpanded();
+    var toggles = docList.querySelectorAll(".tree-toggle");
+    for (var i = 0; i < toggles.length; i++) {
+      if (stored.indexOf(toggles[i].getAttribute("data-tree-path")) >= 0) {
+        setFolderExpanded(toggles[i], true, false);
+      }
+    }
+    markActiveTree();
+    saveTreeExpanded();
+    docList.addEventListener("click", function (event) {
+      var target = event.target;
+      if (!target || !target.closest) {
+        return;
+      }
+      var toggle = target.closest(".tree-toggle");
+      if (toggle && docList.contains(toggle)) {
+        setFolderExpanded(toggle, toggle.getAttribute("aria-expanded") !== "true", true);
       }
     });
+  }
+
+  function navigationType() {
+    try {
+      var entries = performance.getEntriesByType("navigation");
+      return entries.length ? entries[0].type : "";
+    } catch (err) {
+      return "";
+    }
+  }
+
+  function persistSourceMode(active) {
+    try {
+      if (active) {
+        sessionStorage.setItem(sourceStorageKey, "1");
+      } else {
+        sessionStorage.removeItem(sourceStorageKey);
+      }
+    } catch (err) {}
+  }
+
+  function restoreSourceMode() {
+    if (!isDocPage) {
+      return;
+    }
+    if (navigationType() === "reload") {
+      persistSourceMode(false);
+      return;
+    }
+    try {
+      if (sessionStorage.getItem(sourceStorageKey) === "1") {
+        setSourceMode(true);
+      }
+    } catch (err) {}
+  }
+
+  function initDocPage() {
+    var section = sections.length ? sections[0] : null;
+    if (!section) {
+      return;
+    }
+    var anchor = "";
+    if (window.location.hash && window.location.hash.indexOf("#doc=") !== 0) {
+      try {
+        anchor = decodeURIComponent(window.location.hash.slice(1));
+      } catch (err) {
+        anchor = window.location.hash.slice(1);
+      }
+    }
+    showDoc(section.getAttribute("data-doc-id"), anchor, false);
+    initTree();
+    restoreSourceMode();
   }
 
   for (var i = 0; i < docButtons.length; i++) {
@@ -583,7 +733,9 @@
 
   if (sourceButton) {
     sourceButton.addEventListener("click", function () {
-      setSourceMode(!sourceModeActive());
+      var next = !sourceModeActive();
+      setSourceMode(next);
+      persistSourceMode(next);
     });
   }
 
@@ -606,6 +758,7 @@
       if (sourceModeActive()) {
         document.body.classList.remove("source-mode");
         syncSourceButton();
+        persistSourceMode(false);
       }
     });
   }
@@ -714,7 +867,11 @@
   var storedTheme = readPref("openmd-theme");
   applyTheme(validThemes.indexOf(storedTheme) >= 0 ? storedTheme : currentTheme(), false);
 
-  initialDoc();
+  if (isDocPage) {
+    initDocPage();
+  } else {
+    initialDoc();
+  }
   applyChromaTheme();
 
   var initialParams = new URLSearchParams(window.location.hash.slice(1));

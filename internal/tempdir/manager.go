@@ -35,6 +35,15 @@ func (m *Manager) RunDir() (string, error) {
 	return os.MkdirTemp(m.BaseDir, "run-"+now().Format("20060102-150405")+"-*")
 }
 
+// RenderRoot returns the stable cache directory for a scan root key.
+func (m *Manager) RenderRoot(key string) (string, error) {
+	path := filepath.Join(m.BaseDir, "rendered", key)
+	if err := os.MkdirAll(path, 0755); err != nil {
+		return "", err
+	}
+	return path, nil
+}
+
 func (m *Manager) Cleanup() error {
 	entries, err := os.ReadDir(m.BaseDir)
 	if os.IsNotExist(err) {
@@ -82,6 +91,43 @@ func (m *Manager) Cleanup() error {
 	for i, run := range runs {
 		if i >= maxRuns || run.modTime.Before(cutoff) {
 			_ = os.RemoveAll(run.path)
+		}
+	}
+	return cleanRendered(filepath.Join(m.BaseDir, "rendered"), cutoff, maxRuns)
+}
+
+func cleanRendered(root string, cutoff time.Time, maxRoots int) error {
+	entries, err := os.ReadDir(root)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	type rootEntry struct {
+		path    string
+		modTime time.Time
+	}
+	roots := make([]rootEntry, 0, len(entries))
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
+		roots = append(roots, rootEntry{
+			path:    filepath.Join(root, entry.Name()),
+			modTime: info.ModTime(),
+		})
+	}
+	sort.Slice(roots, func(i, j int) bool {
+		return roots[i].modTime.After(roots[j].modTime)
+	})
+	for i, entry := range roots {
+		if i >= maxRoots || entry.modTime.Before(cutoff) {
+			_ = os.RemoveAll(entry.path)
 		}
 	}
 	return nil

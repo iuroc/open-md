@@ -14,6 +14,10 @@ const (
 )
 
 func RewriteURL(raw, baseDir string, kind URLKind, knownDocs map[string]string, currentDocID string) (string, error) {
+	return rewriteURL(raw, baseDir, kind, knownDocs, currentDocID, false)
+}
+
+func rewriteURL(raw, baseDir string, kind URLKind, knownDocs map[string]string, currentDocID string, pageLinks bool) (string, error) {
 	if raw == "" {
 		return "", nil
 	}
@@ -30,7 +34,7 @@ func RewriteURL(raw, baseDir string, kind URLKind, knownDocs map[string]string, 
 	}
 
 	if filepath.IsAbs(raw) {
-		return rewriteLocalTarget(localTarget{Path: filepath.Clean(raw)}, kind, knownDocs)
+		return rewriteLocalTarget(localTarget{Path: filepath.Clean(raw)}, kind, knownDocs, pageLinks)
 	}
 
 	if parsed, err := url.Parse(raw); err == nil {
@@ -65,16 +69,26 @@ func RewriteURL(raw, baseDir string, kind URLKind, knownDocs map[string]string, 
 	if !ok {
 		return "", nil
 	}
-	return rewriteLocalTarget(target, kind, knownDocs)
+	return rewriteLocalTarget(target, kind, knownDocs, pageLinks)
 }
 
-func rewriteLocalTarget(target localTarget, kind URLKind, knownDocs map[string]string) (string, error) {
+func rewriteLocalTarget(target localTarget, kind URLKind, knownDocs map[string]string, pageLinks bool) (string, error) {
 	if kind == LinkURL {
-		if id, ok := lookupKnown(target.Path, knownDocs); ok {
-			return docHash(id, target.Fragment), nil
+		if href, ok := lookupKnown(target.Path, knownDocs); ok {
+			if pageLinks {
+				return pageLink(href, target.Fragment), nil
+			}
+			return docHash(href, target.Fragment), nil
 		}
 	}
 	return fileURL(target.Path, target.RawQuery, target.Fragment)
+}
+
+func pageLink(href, fragment string) string {
+	if fragment == "" {
+		return href
+	}
+	return href + "#" + fragment
 }
 
 func lookupKnown(abs string, knownDocs map[string]string) (string, bool) {

@@ -2,6 +2,7 @@ package scan
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -292,6 +293,32 @@ func TestDirectoryRescanIsDeterministic(t *testing.T) {
 	}
 	if strings.Join(relPaths(first), "|") != strings.Join(relPaths(second), "|") {
 		t.Fatalf("first = %#v, second = %#v", relPaths(first), relPaths(second))
+	}
+}
+
+func TestDirectoryUnlimitedIgnoresCaps(t *testing.T) {
+	dir := t.TempDir()
+	for i := 0; i < 600; i++ {
+		write(t, dir, filepath.Join("group", fmt.Sprintf("doc-%04d.md", i)), []byte("x"))
+	}
+	got, err := Directory(dir, UnlimitedLimits)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Documents) != 600 || got.Truncated {
+		t.Fatalf("docs=%d truncated=%v", len(got.Documents), got.Truncated)
+	}
+}
+
+func TestDirectoryUnlimitedDoesNotSkipLargeFiles(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "big.md", make([]byte, 20))
+	got, err := Directory(dir, UnlimitedLimits)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Documents) != 1 || len(got.Skipped) != 0 {
+		t.Fatalf("docs=%#v skipped=%#v", got.Documents, got.Skipped)
 	}
 }
 

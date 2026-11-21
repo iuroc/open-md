@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"openmd/internal/browser"
+	"openmd/internal/buildinfo"
 	"openmd/internal/install"
 	"openmd/internal/render"
 	"openmd/internal/tempdir"
@@ -64,52 +65,74 @@ func (a *App) runInstaller() error {
 }
 
 func (a *App) openPage(path string, isDir bool) error {
-	var (
-		page *render.Page
-		err  error
-	)
-	if isDir {
-		page, err = render.BuildDirPage(path)
-	} else {
-		page, err = render.BuildFilePage(path)
-	}
-	if err != nil {
-		return err
-	}
-	htmlBytes, err := render.RenderPage(page)
-	if err != nil {
-		return err
-	}
 	if a.Temp == nil {
 		return errors.New("临时目录管理器未初始化")
 	}
 	if a.Opener == nil {
 		return errors.New("浏览器启动器未初始化")
 	}
-
 	_ = a.Temp.Cleanup()
-	runDir, err := a.Temp.RunDir()
+
+	build := func(base string) (*render.Site, error) {
+		opts := render.SiteOptions{
+			CacheBase:  filepath.Join(base, "rendered"),
+			Version:    buildinfo.VersionLabel(),
+			AllowCache: buildinfo.IsReleaseBuild(),
+			Confirm:    a.confirmLoad,
+		}
+		if isDir {
+			return render.BuildDirSite(path, opts)
+		}
+		return render.BuildFileSite(path, opts)
+	}
+
+	site, err := build(a.Temp.BaseDir)
 	if err != nil {
+		if errors.Is(err, render.ErrLoadCancelled) {
+			return nil
+		}
 		fallback := tempdir.New(filepath.Join(os.TempDir(), "OpenMD"))
 		_ = fallback.Cleanup()
-		runDir, err = fallback.RunDir()
+		site, err = build(fallback.BaseDir)
 		if err != nil {
-			return fmt.Errorf("创建临时目录失败: %w", err)
+			if errors.Is(err, render.ErrLoadCancelled) {
+				return nil
+			}
+			return err
 		}
 	}
-
-	htmlPath := filepath.Join(runDir, "index.html")
-	tmpPath := htmlPath + ".tmp"
-	if err := os.WriteFile(tmpPath, htmlBytes, 0644); err != nil {
-		return fmt.Errorf("写入临时页面失败: %w", err)
-	}
-	if err := os.Rename(tmpPath, htmlPath); err != nil {
-		return fmt.Errorf("保存临时页面失败: %w", err)
-	}
-	if err := a.Opener.Open(htmlPath); err != nil {
+	if err := a.Opener.Open(site.InitialPage); err != nil {
 		return fmt.Errorf("打开默认浏览器失败: %w", err)
 	}
 	return nil
+}
+
+func (a *App) confirmLoad(estimate render.Estimate) render.LoadChoice {
+	if a.Dialog == nil {
+		return render.LoadAll
+	}
+	message := fmt.Sprintf(
+		"本次需要生成 %d 篇文档，合计 %s。\n\n生成期间需要等待一段时间。\n\n是：加载全部（不再限制数量、总量、深度和目录项）\n否：只加载较快的一部分（3,000 篇 / 8 MiB）\n取消：退出",
+		estimate.PendingDocs, formatSize(estimate.PendingBytes),
+	)
+	switch a.Dialog.ConfirmLoad(message) {
+	case ui.LoadAll:
+		return render.LoadAll
+	case ui.LoadQuick:
+		return render.LoadQuick
+	default:
+		return render.LoadCancel
+	}
+}
+
+func formatSize(size int64) string {
+	if size >= 1<<20 {
+		return fmt.Sprintf("%.1f MB", float64(size)/(1<<20))
+	}
+	if size >= 1<<10 {
+		return fmt.Sprintf("%.1f KB", float64(size)/(1<<10))
+	}
+	return fmt.Sprintf("%d B", size)
 }
 
 func fileExists(path string) bool {

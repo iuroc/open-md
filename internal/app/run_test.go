@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"openmd/internal/install"
+	"openmd/internal/render"
 	"openmd/internal/tempdir"
 	"openmd/internal/ui"
 )
@@ -21,14 +22,21 @@ func (f *fakeOpener) Open(path string) error {
 }
 
 type fakeDialog struct {
-	choice ui.Choice
-	infos  []string
-	errors []string
-	events *[]string
+	choice      ui.Choice
+	load        ui.LoadDecision
+	confirmSeen []string
+	infos       []string
+	errors      []string
+	events      *[]string
 }
 
 func (f *fakeDialog) Installer(installedPath string, installed bool) ui.Choice {
 	return f.choice
+}
+
+func (f *fakeDialog) ConfirmLoad(message string) ui.LoadDecision {
+	f.confirmSeen = append(f.confirmSeen, message)
+	return f.load
 }
 
 func (f *fakeDialog) Info(message string) {
@@ -94,7 +102,7 @@ func TestRunReadFileRendersTempHTMLAndOpensBrowser(t *testing.T) {
 	if opener.path == "" {
 		t.Fatal("browser not opened")
 	}
-	if filepath.Base(opener.path) != "index.html" {
+	if !strings.HasPrefix(filepath.Base(opener.path), "doc-") {
 		t.Fatalf("opened %q", opener.path)
 	}
 	data, err := os.ReadFile(opener.path)
@@ -103,6 +111,9 @@ func TestRunReadFileRendersTempHTMLAndOpensBrowser(t *testing.T) {
 	}
 	if !strings.Contains(string(data), "Hello") {
 		t.Fatal("rendered content missing")
+	}
+	if !strings.Contains(string(data), `href="reader.css"`) {
+		t.Fatal("shared stylesheet missing")
 	}
 	entries, err := os.ReadDir(filepath.Dir(md))
 	if err != nil {
@@ -136,8 +147,27 @@ func TestRunReadDirBuildsDocumentList(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(data), `id="doc-list"`) || !strings.Contains(string(data), `data-doc-target="doc-1"`) {
-		t.Fatalf("document list missing: %s", data)
+	if !strings.Contains(string(data), `id="doc-list"`) || !strings.Contains(string(data), "A") {
+		t.Fatalf("document page missing: %s", data)
+	}
+	tree, err := os.ReadFile(filepath.Join(filepath.Dir(opener.path), "tree.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(tree), "data-tree-path") || !strings.Contains(string(tree), "a.md") || !strings.Contains(string(tree), "b.md") {
+		t.Fatalf("document tree missing: %s", tree)
+	}
+}
+
+func TestConfirmLoadMapsDialogChoice(t *testing.T) {
+	d := &fakeDialog{load: ui.LoadQuick}
+	a := &App{Dialog: d}
+	got := a.confirmLoad(render.Estimate{PendingDocs: 3001, PendingBytes: 9 << 20})
+	if got != render.LoadQuick {
+		t.Fatalf("choice = %v", got)
+	}
+	if len(d.confirmSeen) != 1 || !strings.Contains(d.confirmSeen[0], "3001") {
+		t.Fatalf("confirm message = %#v", d.confirmSeen)
 	}
 }
 
