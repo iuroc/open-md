@@ -123,6 +123,8 @@ func TestBuildDirSiteCreatesIndependentPages(t *testing.T) {
 		`id="mode-menu"`,
 		`data-mode="split"`,
 		`role="menuitemradio"`,
+		`id="source-wrap-toggle"`,
+		`role="switch"`,
 	} {
 		if !strings.Contains(string(page), want) {
 			t.Fatalf("view mode menu missing %q", want)

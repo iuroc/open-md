@@ -301,6 +301,10 @@ func TestRenderPageViewModeMenuAndSourceBlocks(t *testing.T) {
 		`data-has-source="false"`,
 		`复制源码`,
 		`该文档没有可显示的源码`,
+		`id="source-wrap-toggle"`,
+		`role="switch"`,
+		`自动换行`,
+		`长行按阅读宽度折行`,
 		`<span class="gh"># A</span>`,
 	} {
 		if !strings.Contains(s, want) {
@@ -507,15 +511,18 @@ func TestReaderCSSSupportsSplitView(t *testing.T) {
 		"grid-row: 1;",
 		"overflow-y: auto;",
 		"border-right: 1px solid var(--border);",
-		"scrollbar-width: none;",
 	} {
 		if !strings.Contains(source, want) {
 			t.Fatalf("split source rule missing %q: %s", want, source)
 		}
 	}
-	scrollbar := readerCSSRule(t, "body.split-mode .doc-section .source-view::-webkit-scrollbar {")
+	hiddenScrollbar := readerCSSRule(t, "body.split-mode:not(.source-no-wrap) .doc-section .source-view {")
+	if !strings.Contains(hiddenScrollbar, "scrollbar-width: none;") {
+		t.Fatalf("wrapped split source must hide its scrollbar: %s", hiddenScrollbar)
+	}
+	scrollbar := readerCSSRule(t, "body.split-mode:not(.source-no-wrap) .doc-section .source-view::-webkit-scrollbar {")
 	if !strings.Contains(scrollbar, "display: none;") {
-		t.Fatalf("split source scrollbar must be hidden: %s", scrollbar)
+		t.Fatalf("wrapped split source scrollbar must be hidden: %s", scrollbar)
 	}
 	for _, banned := range []string{"background: var(--bg-subtle);", "border-bottom"} {
 		if strings.Contains(source, banned) {
@@ -541,6 +548,130 @@ func TestReaderCSSSupportsSplitView(t *testing.T) {
 	if !strings.Contains(readerCSS, "body.split-mode #doc-content {") ||
 		!strings.Contains(readerCSS, "height: calc(100vh - var(--chrome-height));") {
 		t.Fatal("split mode must fill the viewport below the topbar")
+	}
+}
+
+func TestReaderCSSPrintFollowsViewMode(t *testing.T) {
+	printCSS := readerPrintCSS(t)
+	for _, want := range []string{
+		".app,",
+		"min-height: 0;",
+		"body.split-mode {",
+		"overflow: visible;",
+	} {
+		if !strings.Contains(printCSS, want) {
+			t.Fatalf("print block missing %q", want)
+		}
+	}
+	content := cssRule(t, printCSS, "body.split-mode #doc-content {")
+	for _, want := range []string{"height: auto;", "overflow: visible;"} {
+		if !strings.Contains(content, want) {
+			t.Fatalf("split print content rule missing %q: %s", want, content)
+		}
+	}
+	section := cssRule(t, printCSS, "body.split-mode .doc-section.markdown-body {")
+	for _, want := range []string{"display: block;", "height: auto;"} {
+		if !strings.Contains(section, want) {
+			t.Fatalf("split print section rule missing %q: %s", want, section)
+		}
+	}
+	source := cssRule(t, printCSS, "body.split-mode .doc-section .source-view {")
+	if !strings.Contains(source, "display: none;") {
+		t.Fatalf("split print must hide the source pane: %s", source)
+	}
+	rendered := cssRule(t, printCSS, "body.split-mode .doc-section .doc-rendered {")
+	for _, want := range []string{"overflow: visible;", "padding: 0;"} {
+		if !strings.Contains(rendered, want) {
+			t.Fatalf("split print rendered rule missing %q: %s", want, rendered)
+		}
+	}
+}
+
+func TestReaderCSSPrintWrapsCodeAndTables(t *testing.T) {
+	printCSS := readerPrintCSS(t)
+	pre := cssRule(t, printCSS, ".markdown-body pre,")
+	for _, want := range []string{
+		"overflow: visible !important;",
+		"white-space: pre-wrap !important;",
+		"overflow-wrap: anywhere !important;",
+		"word-break: break-word !important;",
+	} {
+		if !strings.Contains(pre, want) {
+			t.Fatalf("printed code rule missing %q: %s", want, pre)
+		}
+	}
+	table := cssRule(t, printCSS, ".markdown-body table {")
+	for _, want := range []string{"display: table;", "width: 100%;", "overflow: visible;"} {
+		if !strings.Contains(table, want) {
+			t.Fatalf("printed table rule missing %q: %s", want, table)
+		}
+	}
+	cells := cssRule(t, printCSS, ".markdown-body table th,")
+	for _, want := range []string{"white-space: normal;", "overflow-wrap: anywhere;"} {
+		if !strings.Contains(cells, want) {
+			t.Fatalf("printed table cell rule missing %q: %s", want, cells)
+		}
+	}
+	source := cssRule(t, printCSS, ".doc-section .source-code.chroma {")
+	for _, want := range []string{"white-space: pre-wrap !important;", "overflow-x: hidden !important;"} {
+		if !strings.Contains(source, want) {
+			t.Fatalf("printed source rule missing %q: %s", want, source)
+		}
+	}
+}
+
+func TestReaderCSSSupportsSourceWrapSetting(t *testing.T) {
+	noWrap := readerCSSRule(t, "body.source-no-wrap .doc-section .source-code.chroma {")
+	for _, want := range []string{
+		"white-space: pre;",
+		"overflow-wrap: normal;",
+		"word-break: normal;",
+		"overflow-x: visible;",
+	} {
+		if !strings.Contains(noWrap, want) {
+			t.Fatalf("no-wrap source rule missing %q: %s", want, noWrap)
+		}
+	}
+	splitNoWrap := readerCSSRule(t, "body.split-mode.source-no-wrap .doc-section .source-view {")
+	if !strings.Contains(splitNoWrap, "overflow-x: auto;") {
+		t.Fatalf("split no-wrap source must scroll horizontally: %s", splitNoWrap)
+	}
+	horizontal := readerCSSRule(t, "body.split-mode.source-no-wrap .doc-section .source-view::-webkit-scrollbar {")
+	if !strings.Contains(horizontal, "display: block;") {
+		t.Fatalf("split no-wrap source must show a horizontal scrollbar: %s", horizontal)
+	}
+	vertical := readerCSSRule(t, "body.split-mode.source-no-wrap .doc-section .source-view::-webkit-scrollbar:vertical {")
+	if !strings.Contains(vertical, "display: none;") {
+		t.Fatalf("split no-wrap source must keep the vertical scrollbar hidden: %s", vertical)
+	}
+	code := readerCSSRule(t, "body.split-mode.source-no-wrap .doc-section .source-code.chroma {")
+	for _, want := range []string{"width: max-content;", "min-width: 100%;"} {
+		if !strings.Contains(code, want) {
+			t.Fatalf("split no-wrap code rule missing %q: %s", want, code)
+		}
+	}
+}
+
+func TestReaderCSSHidesWidthToggleInSplit(t *testing.T) {
+	rule := readerCSSRule(t, "body.split-mode #width-toggle {")
+	if !strings.Contains(rule, "display: none;") {
+		t.Fatalf("split mode must hide the width toggle: %s", rule)
+	}
+}
+
+func TestReaderJSSupportsSourceWrapSetting(t *testing.T) {
+	for _, want := range []string{
+		`"source-wrap-toggle"`,
+		"openmd-source-wrap",
+		"source-no-wrap",
+		"applySourceWrap",
+		"sourceWrapEnabled",
+		"writePref(sourceWrapKey",
+		"aria-checked",
+	} {
+		if !strings.Contains(readerJS, want) {
+			t.Fatalf("reader.js missing %q", want)
+		}
 	}
 }
 
@@ -616,15 +747,29 @@ func TestReaderCSSSourceHasNoOuterCard(t *testing.T) {
 
 func readerCSSRule(t *testing.T, selector string) string {
 	t.Helper()
-	start := strings.Index(readerCSS, selector)
+	return cssRule(t, readerCSS, selector)
+}
+
+func cssRule(t *testing.T, css, selector string) string {
+	t.Helper()
+	start := strings.Index(css, selector)
 	if start < 0 {
 		t.Fatalf("CSS rule %q missing", selector)
 	}
-	end := strings.Index(readerCSS[start:], "}")
+	end := strings.Index(css[start:], "}")
 	if end < 0 {
 		t.Fatalf("CSS rule %q has no closing brace", selector)
 	}
-	return readerCSS[start : start+end]
+	return css[start : start+end]
+}
+
+func readerPrintCSS(t *testing.T) string {
+	t.Helper()
+	start := strings.Index(readerCSS, "@media print {")
+	if start < 0 {
+		t.Fatal("print media block missing")
+	}
+	return readerCSS[start:]
 }
 
 func TestReaderCSSSourceUsesBodyFontSize(t *testing.T) {
