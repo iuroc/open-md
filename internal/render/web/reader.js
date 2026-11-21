@@ -930,6 +930,13 @@
     showDocFromHash(window.location.hash);
   });
 
+  document.addEventListener("dragstart", function (event) {
+    var target = event.target;
+    if (target && target.closest && target.closest("#doc-list a[href]")) {
+      event.preventDefault();
+    }
+  });
+
   document.addEventListener("click", function (event) {
     if (!isDocPage || event.defaultPrevented || event.button !== 0) {
       return;

@@ -819,7 +819,7 @@ func renderNavHTML(tree []*TreeNode, linked []Document, warnings []string, mode 
 	if len(linked) > 0 {
 		b.WriteString(`<div class="tree-section-label">链接文档</div><ul class="tree-root linked-tree">`)
 		for _, doc := range linked {
-			b.WriteString(`<li class="tree-node tree-file"><a class="doc-item linked" href="`)
+			b.WriteString(`<li class="tree-node tree-file"><a class="doc-item linked" draggable="false" href="`)
 			b.WriteString(stdhtml.EscapeString(doc.ID))
 			b.WriteString(`" data-tree-path="`)
 			b.WriteString(stdhtml.EscapeString(doc.RelPath))
@@ -859,7 +859,7 @@ func renderTreeNodes(b *strings.Builder, nodes []*TreeNode) {
 			b.WriteString(`</ul></li>`)
 			continue
 		}
-		b.WriteString(`<li class="tree-node tree-file"><a class="tree-file-link" href="`)
+		b.WriteString(`<li class="tree-node tree-file"><a class="tree-file-link" draggable="false" href="`)
 		b.WriteString(stdhtml.EscapeString(node.DocID))
 		b.WriteString(`" data-tree-path="`)
 		b.WriteString(stdhtml.EscapeString(node.RelPath))

@@ -435,6 +435,17 @@ func TestDocPageFadesInOnBoot(t *testing.T) {
 	}
 }
 
+func TestReaderCSSDisablesTreeLinkDragAndUnderline(t *testing.T) {
+	for _, want := range []string{
+		"#doc-list a:hover",
+		"-webkit-user-drag: none;",
+	} {
+		if !strings.Contains(readerCSS, want) {
+			t.Fatalf("reader.css missing %q", want)
+		}
+	}
+}
+
 func TestReaderJSWiresFileTree(t *testing.T) {
 	for _, want := range []string{
 		`document.querySelectorAll("[data-doc-target]")`,
@@ -442,6 +453,8 @@ func TestReaderJSWiresFileTree(t *testing.T) {
 		"revealTreeTarget",
 		`aria-expanded`,
 		`.tree-children`,
+		`"dragstart"`,
+		`#doc-list a[href]`,
 	} {
 		if !strings.Contains(readerJS, want) {
 			t.Fatalf("reader.js missing %q", want)

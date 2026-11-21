@@ -285,6 +285,18 @@ a:hover {
   min-width: 0;
 }
 
+#doc-list a,
+#doc-list a:hover,
+#doc-list a:focus,
+#doc-list a:focus-visible {
+  text-decoration: none;
+}
+
+#doc-list a {
+  -webkit-user-drag: none;
+  user-drag: none;
+}
+
 .tree-toggle,
 .tree-file-button,
 .tree-file-link {

@@ -143,6 +143,9 @@ func TestBuildDirSiteCreatesIndependentPages(t *testing.T) {
 	if !strings.Contains(string(treeJS), "sub") || !strings.Contains(string(treeJS), href) {
 		t.Fatalf("tree.js missing navigation: %s", treeJS)
 	}
+	if !strings.Contains(string(treeJS), "draggable=") {
+		t.Fatal("tree links must not be draggable")
+	}
 }
 
 func TestBuildDirSiteReusesUnchangedPages(t *testing.T) {
