@@ -394,6 +394,19 @@ func TestReaderCSSRendersFileTree(t *testing.T) {
 	}
 }
 
+func TestReaderJSCoalescesRapidDocumentSwitches(t *testing.T) {
+	for _, want := range []string{
+		"navCoalesceMs",
+		`closest("a.tree-file-link")`,
+		"pendingNavHref",
+		"clearTimeout(pendingNavTimer)",
+	} {
+		if !strings.Contains(readerJS, want) {
+			t.Fatalf("reader.js missing %q", want)
+		}
+	}
+}
+
 func TestReaderJSWiresFileTree(t *testing.T) {
 	for _, want := range []string{
 		`document.querySelectorAll("[data-doc-target]")`,

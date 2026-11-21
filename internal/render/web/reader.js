@@ -732,6 +732,49 @@
     });
   }
 
+  var navCoalesceMs = 150;
+  var pendingNavHref = "";
+  var pendingNavTimer = null;
+
+  document.addEventListener("click", function (event) {
+    if (event.defaultPrevented || event.button !== 0) {
+      return;
+    }
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+      return;
+    }
+    var target = event.target;
+    if (!target || !target.closest) {
+      return;
+    }
+    var link = target.closest("a.tree-file-link");
+    if (!link) {
+      return;
+    }
+    var href = link.getAttribute("href");
+    if (!href) {
+      return;
+    }
+    if (event.detail === 0) {
+      window.location.href = href;
+      return;
+    }
+    event.preventDefault();
+    pendingNavHref = href;
+    var active = docList ? docList.querySelector(".tree-file-link.active") : null;
+    if (active && active !== link) {
+      active.classList.remove("active");
+    }
+    if (docList) {
+      link.classList.add("active");
+    }
+    clearTimeout(pendingNavTimer);
+    pendingNavTimer = setTimeout(function () {
+      pendingNavTimer = null;
+      window.location.href = pendingNavHref;
+    }, navCoalesceMs);
+  }, true);
+
   document.addEventListener("click", function (event) {
     var target = event.target;
     if (!target || !target.closest) {
