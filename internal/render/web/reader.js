@@ -444,10 +444,12 @@
     replaceTOC(section);
     applyChromaTheme();
 
-    scrollToAnchor(section, anchor);
-    window.requestAnimationFrame(function () {
+    if (!initialScrollRestore || anchor) {
       scrollToAnchor(section, anchor);
-    });
+      window.requestAnimationFrame(function () {
+        scrollToAnchor(section, anchor);
+      });
+    }
 
     if (updateHash !== false) {
       setHash(section.getAttribute("data-doc-id"), anchor || "");
@@ -899,12 +901,12 @@
       return;
     }
     initialScrollRestore = false;
-    window.requestAnimationFrame(function () {
+    window.setTimeout(function () {
       if (!skipRestore) {
         restoreBodyScroll();
       }
       revealPage();
-    });
+    }, 0);
   }
 
   function replaceSections(page, anchor) {

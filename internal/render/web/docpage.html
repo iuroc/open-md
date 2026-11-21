@@ -72,11 +72,8 @@
   @view-transition { navigation: auto; }
   ::view-transition { pointer-events: none; }
   html.openmd-hash-load #doc-content { visibility: hidden; }
-  html.openmd-booting #doc-content { opacity: 0; }
-  html.openmd-booting.openmd-ready #doc-content { opacity: 1; transition: opacity 180ms ease; }
-  @media (prefers-reduced-motion: reduce) {
-    html.openmd-booting.openmd-ready #doc-content { transition: none; }
-  }
+  html.openmd-booting body { visibility: hidden; }
+  html.openmd-booting.openmd-ready body { visibility: visible; }
   html { background: #fbfdff; }
   html[data-theme="teal"] { background: #ffffff; }
   html[data-theme="violet"] { background: #fcfbff; }
