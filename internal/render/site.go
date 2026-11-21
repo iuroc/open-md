@@ -1,6 +1,7 @@
 package render
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -218,6 +219,9 @@ func BuildDirSite(dirPath string, opts SiteOptions) (*Site, error) {
 	if err := renderDocs(cacheDir, "dir", rootKey, all, knownDocs, hasFilesPanel); err != nil {
 		return nil, err
 	}
+	if err := ensureDocPayloads(cacheDir, all); err != nil {
+		return nil, err
+	}
 
 	treeDocs := make([]Document, 0, len(primary))
 	for _, doc := range primary {
@@ -318,6 +322,9 @@ func BuildFileSite(filePath string, opts SiteOptions) (*Site, error) {
 	}
 	hasFilesPanel := len(linked) > 0
 	if err := renderDocs(cacheDir, "file", rootKey, all, knownDocs, hasFilesPanel); err != nil {
+		return nil, err
+	}
+	if err := ensureDocPayloads(cacheDir, all); err != nil {
 		return nil, err
 	}
 	linkedDocs := make([]Document, 0, len(linked))
@@ -539,7 +546,10 @@ func renderOneDoc(cacheDir, mode, rootKey string, doc *siteDoc, knownDocs map[st
 		return err
 	}
 	doc.Title = document.Title
-	return writeAtomic(filepath.Join(cacheDir, doc.Href), html)
+	if err := writeAtomic(filepath.Join(cacheDir, doc.Href), html); err != nil {
+		return err
+	}
+	return writeDocPayload(cacheDir, doc.Href, html)
 }
 
 func pendingWork(docs []scan.Document, manifest siteManifest, cacheDir string) (int, int64) {
@@ -675,6 +685,44 @@ func writeAtomic(path string, data []byte) error {
 	return os.Rename(tmp, path)
 }
 
+func docPayloadHref(href string) string {
+	return strings.TrimSuffix(href, ".html") + ".js"
+}
+
+func writeDocPayload(cacheDir, href string, html []byte) error {
+	key, err := json.Marshal(docPayloadHref(href))
+	if err != nil {
+		return err
+	}
+	var buf bytes.Buffer
+	buf.WriteString("window.OPENMD_PAGES=window.OPENMD_PAGES||{};window.OPENMD_PAGES[")
+	buf.Write(key)
+	buf.WriteString("]=")
+	encoder := json.NewEncoder(&buf)
+	encoder.SetEscapeHTML(false)
+	if err := encoder.Encode(string(html)); err != nil {
+		return err
+	}
+	return writeAtomic(filepath.Join(cacheDir, docPayloadHref(href)), buf.Bytes())
+}
+
+func ensureDocPayloads(cacheDir string, docs []*siteDoc) error {
+	for _, doc := range docs {
+		payloadPath := filepath.Join(cacheDir, docPayloadHref(doc.Href))
+		if fileExists(payloadPath) {
+			continue
+		}
+		html, err := os.ReadFile(filepath.Join(cacheDir, doc.Href))
+		if err != nil {
+			continue
+		}
+		if err := writeDocPayload(cacheDir, doc.Href, html); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func prunePages(cacheDir string, docs []*siteDoc) {
 	keep := make(map[string]bool, len(docs))
 	for _, doc := range docs {
@@ -686,10 +734,19 @@ func prunePages(cacheDir string, docs []*siteDoc) {
 	}
 	for _, entry := range entries {
 		name := entry.Name()
-		if !strings.HasPrefix(name, "doc-") || !strings.HasSuffix(name, ".html") {
+		if !strings.HasPrefix(name, "doc-") {
 			continue
 		}
-		if !keep[name] {
+		var htmlName string
+		switch {
+		case strings.HasSuffix(name, ".html"):
+			htmlName = name
+		case strings.HasSuffix(name, ".js"):
+			htmlName = strings.TrimSuffix(name, ".js") + ".html"
+		default:
+			continue
+		}
+		if !keep[htmlName] {
 			_ = os.Remove(filepath.Join(cacheDir, name))
 		}
 	}

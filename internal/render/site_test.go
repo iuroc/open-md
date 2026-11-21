@@ -83,6 +83,13 @@ func TestBuildDirSiteCreatesIndependentPages(t *testing.T) {
 	if !strings.Contains(string(page), "html { background: #fbfdff; }") {
 		t.Fatal("boot background missing")
 	}
+	payload, err := os.ReadFile(strings.TrimSuffix(site.InitialPage, ".html") + ".js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(payload), "window.OPENMD_PAGES") || !strings.Contains(string(payload), "doc-content") {
+		t.Fatalf("document payload missing content: %s", payload[:min(len(payload), 200)])
+	}
 	if !strings.Contains(string(page), `src="tree.js"`) {
 		t.Fatal("shared tree.js not referenced")
 	}

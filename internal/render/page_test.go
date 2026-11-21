@@ -394,13 +394,15 @@ func TestReaderCSSRendersFileTree(t *testing.T) {
 	}
 }
 
-func TestReaderJSCoalescesRapidDocumentSwitches(t *testing.T) {
+func TestReaderJSSupportsSoftDocumentNavigation(t *testing.T) {
 	for _, want := range []string{
-		"navCoalesceMs",
 		"isDocPageLink",
-		`closest("a[href]")`,
-		"pendingNavHref",
-		"clearTimeout(pendingNavTimer)",
+		"window.OPENMD_PAGES",
+		"new DOMParser()",
+		"loadSoftPage",
+		"navGeneration",
+		"hashchange",
+		"parseDocHash",
 	} {
 		if !strings.Contains(readerJS, want) {
 			t.Fatalf("reader.js missing %q", want)

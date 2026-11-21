@@ -676,17 +676,29 @@
     if (!section) {
       return;
     }
+    var hash = window.location.hash;
+    var docHash = parseDocHash(hash);
     var anchor = "";
-    if (window.location.hash && window.location.hash.indexOf("#doc=") !== 0) {
+    if (!docHash && hash && hash.indexOf("#doc=") !== 0) {
       try {
-        anchor = decodeURIComponent(window.location.hash.slice(1));
+        anchor = decodeURIComponent(hash.slice(1));
       } catch (err) {
-        anchor = window.location.hash.slice(1);
+        anchor = hash.slice(1);
       }
     }
     showDoc(section.getAttribute("data-doc-id"), anchor, false);
     initTree();
     restoreSourceMode();
+    var content = document.getElementById("doc-content");
+    if (content) {
+      initialPageHTML = content.innerHTML;
+      initialPageAnchor = anchor;
+      initialPagePath = activePath;
+    }
+    if (docHash) {
+      var generation = ++navGeneration;
+      loadSoftPage(docHash.file, docHash.anchor, treePathForFile(docHash.file), generation);
+    }
   }
 
   for (var i = 0; i < docButtons.length; i++) {
@@ -732,9 +744,10 @@
     });
   }
 
-  var navCoalesceMs = 150;
-  var pendingNavHref = "";
-  var pendingNavTimer = null;
+  var navGeneration = 0;
+  var initialPageHTML = "";
+  var initialPageAnchor = "";
+  var initialPagePath = "";
 
   function isDocPageLink(href) {
     if (!href || href.charAt(0) === "#" || href.charAt(0) === "/" || href.charAt(0) === "\\" || href.indexOf(":") >= 0) {
@@ -743,8 +756,161 @@
     return /\.html(?:#.*)?$/i.test(href);
   }
 
+  function splitDocHref(href) {
+    var index = href.indexOf("#");
+    if (index < 0) {
+      return { file: href, anchor: "" };
+    }
+    return { file: href.slice(0, index), anchor: href.slice(index + 1) };
+  }
+
+  function payloadHref(file) {
+    return file.replace(/\.html$/i, ".js");
+  }
+
+  function parseDocHash(hash) {
+    if (hash.indexOf("#openmd=") !== 0) {
+      return null;
+    }
+    var params = new URLSearchParams(hash.slice(1));
+    var file = params.get("openmd");
+    if (!file) {
+      return null;
+    }
+    return { file: file, anchor: params.get("anchor") || "" };
+  }
+
+  function treePathForFile(file) {
+    if (!docList) {
+      return "";
+    }
+    var links = docList.querySelectorAll(".tree-file-link, .doc-item[data-tree-path]");
+    for (var i = 0; i < links.length; i++) {
+      var parts = splitDocHref(links[i].getAttribute("href") || "");
+      if (parts.file === file) {
+        return links[i].getAttribute("data-tree-path") || "";
+      }
+    }
+    return "";
+  }
+
+  function setActiveTree(treePath) {
+    if (!docList) {
+      return;
+    }
+    var active = docList.querySelectorAll("a.active");
+    for (var i = 0; i < active.length; i++) {
+      active[i].classList.remove("active");
+      active[i].removeAttribute("aria-current");
+    }
+    if (!treePath) {
+      return;
+    }
+    activePath = treePath;
+    document.body.setAttribute("data-active-path", treePath);
+    var links = docList.querySelectorAll(".tree-file-link, .doc-item[data-tree-path]");
+    for (var j = 0; j < links.length; j++) {
+      if (links[j].getAttribute("data-tree-path") === treePath) {
+        links[j].classList.add("active");
+        links[j].setAttribute("aria-current", "page");
+        expandTreeAncestors(links[j]);
+        return;
+      }
+    }
+  }
+
+  function replaceSections(html, anchor) {
+    var parsed = new DOMParser().parseFromString(html, "text/html");
+    var incoming = parsed.getElementById("doc-content");
+    var content = document.getElementById("doc-content");
+    if (!incoming || !content) {
+      return false;
+    }
+    content.innerHTML = incoming.innerHTML;
+    sections = Array.prototype.slice.call(document.querySelectorAll(".doc-section"));
+    showDoc("doc", anchor, false);
+    return true;
+  }
+
+  function restoreInitialPage(anchor) {
+    if (!initialPageHTML) {
+      return false;
+    }
+    var content = document.getElementById("doc-content");
+    if (!content) {
+      return false;
+    }
+    content.innerHTML = initialPageHTML;
+    sections = Array.prototype.slice.call(document.querySelectorAll(".doc-section"));
+    showDoc("doc", anchor || initialPageAnchor, false);
+    setActiveTree(initialPagePath);
+    return true;
+  }
+
+  function loadSoftPage(file, anchor, treePath, generation) {
+    var payload = payloadHref(file);
+    var pages = window.OPENMD_PAGES || {};
+    var apply = function (html) {
+      if (generation !== navGeneration) {
+        return;
+      }
+      if (!replaceSections(html, anchor)) {
+        window.location.href = file + (anchor ? "#" + anchor : "");
+        return;
+      }
+      setActiveTree(treePath);
+    };
+    if (pages[payload]) {
+      apply(pages[payload]);
+      return;
+    }
+    var script = document.createElement("script");
+    script.src = payload;
+    script.onload = function () {
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+      var loaded = (window.OPENMD_PAGES || {})[payload];
+      if (!loaded) {
+        if (generation === navGeneration) {
+          window.location.href = file + (anchor ? "#" + anchor : "");
+        }
+        return;
+      }
+      apply(loaded);
+    };
+    script.onerror = function () {
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+      if (generation === navGeneration) {
+        window.location.href = file + (anchor ? "#" + anchor : "");
+      }
+    };
+    document.head.appendChild(script);
+  }
+
+  function showDocFromHash(hash) {
+    var info = parseDocHash(hash);
+    if (!info) {
+      if (!hash) {
+        restoreInitialPage("");
+      }
+      return;
+    }
+    var generation = ++navGeneration;
+    loadSoftPage(info.file, info.anchor, treePathForFile(info.file), generation);
+  }
+
+  window.addEventListener("hashchange", function () {
+    if (!isDocPage) {
+      return;
+    }
+    showDocFromHash(window.location.hash);
+  });
+
   document.addEventListener("click", function (event) {
-    if (event.defaultPrevented || event.button !== 0) {
+    if (!isDocPage || event.defaultPrevented || event.button !== 0) {
       return;
     }
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
@@ -762,26 +928,15 @@
     if (!isDocPageLink(href) || link.hasAttribute("download") || link.getAttribute("target")) {
       return;
     }
-    if (event.detail === 0) {
-      window.location.href = href;
-      return;
-    }
     event.preventDefault();
-    pendingNavHref = href;
-    if (docList) {
-      var active = docList.querySelector("a.active");
-      if (active && active !== link) {
-        active.classList.remove("active");
-      }
-      if (docList.contains(link)) {
-        link.classList.add("active");
-      }
+    var parts = splitDocHref(href);
+    var treePath = link.getAttribute("data-tree-path") || treePathForFile(parts.file);
+    setActiveTree(treePath);
+    var hash = "#openmd=" + encodeURIComponent(parts.file);
+    if (parts.anchor) {
+      hash += "&anchor=" + encodeURIComponent(parts.anchor);
     }
-    clearTimeout(pendingNavTimer);
-    pendingNavTimer = setTimeout(function () {
-      pendingNavTimer = null;
-      window.location.href = pendingNavHref;
-    }, navCoalesceMs);
+    window.location.hash = hash;
   }, true);
 
   document.addEventListener("click", function (event) {
