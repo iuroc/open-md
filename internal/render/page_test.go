@@ -413,6 +413,16 @@ func TestReaderCSSColorsMarkdownTokens(t *testing.T) {
 	}
 }
 
+func TestReaderCSSOffsetsFootnoteAnchors(t *testing.T) {
+	rule := readerCSSRule(t, `.doc-section sup[id*="fnref:"],`)
+	if !strings.Contains(rule, ".doc-section .footnotes li") {
+		t.Fatalf("footnote definition target missing from rule: %s", rule)
+	}
+	if !strings.Contains(rule, "scroll-margin-top: 80px;") {
+		t.Fatalf("footnote anchors do not account for the topbar: %s", rule)
+	}
+}
+
 func TestReaderCSSKeepsTableHeadersOnOneLine(t *testing.T) {
 	if !strings.Contains(readerCSS, ".markdown-body table th {") {
 		t.Fatal("table header rule missing")

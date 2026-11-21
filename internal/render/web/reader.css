@@ -843,6 +843,11 @@ body.source-mode .doc-section .source-view {
   scroll-margin-top: 80px;
 }
 
+.doc-section sup[id*="fnref:"],
+.doc-section .footnotes li {
+  scroll-margin-top: 80px;
+}
+
 @media (max-width: 900px) {
   #sidebar {
     transform: translateX(-100%);
