@@ -9,11 +9,15 @@
   var titleEl = document.getElementById("doc-title");
   var menuButton = document.getElementById("menu-toggle");
   var widthButton = document.getElementById("width-toggle");
+  var sourceButton = document.getElementById("source-toggle");
   var sidebarBackdrop = document.getElementById("sidebar-backdrop");
   var sidebarClose = document.getElementById("sidebar-close");
   var settingsButton = document.getElementById("settings-button");
   var settingsPanel = document.getElementById("settings-panel");
   var settingsClose = document.getElementById("settings-close");
+  var settingsTabButtons = Array.prototype.slice.call(document.querySelectorAll(".settings-tab"));
+  var settingsTabPanels = Array.prototype.slice.call(document.querySelectorAll(".settings-tabpanel"));
+  var settingsTabsEl = document.querySelector(".settings-tabs");
   var filePathEl = document.getElementById("file-path");
   var fileDirEl = document.getElementById("file-dir");
   var copyPathButton = document.getElementById("copy-path");
@@ -93,6 +97,49 @@
     settingsButton.setAttribute("aria-expanded", open ? "true" : "false");
   }
 
+  function activateSettingsTab(name) {
+    if (settingsTabButtons.length === 0) {
+      return;
+    }
+    for (var i = 0; i < settingsTabButtons.length; i++) {
+      var selected = settingsTabButtons[i].getAttribute("data-settings-tab") === name;
+      settingsTabButtons[i].classList.toggle("active", selected);
+      settingsTabButtons[i].setAttribute("aria-selected", selected ? "true" : "false");
+      settingsTabButtons[i].tabIndex = selected ? 0 : -1;
+    }
+    for (var j = 0; j < settingsTabPanels.length; j++) {
+      settingsTabPanels[j].hidden =
+        settingsTabPanels[j].getAttribute("data-settings-panel") !== name;
+    }
+  }
+
+  function sourceModeActive() {
+    return document.body.classList.contains("source-mode");
+  }
+
+  function syncSourceButton() {
+    if (!sourceButton) {
+      return;
+    }
+    var active = sourceModeActive();
+    sourceButton.setAttribute("aria-pressed", active ? "true" : "false");
+    var label = active ? "返回阅读视图" : "查看源码";
+    sourceButton.setAttribute("aria-label", label);
+    sourceButton.title = label;
+  }
+
+  function setSourceMode(active) {
+    if (sourceModeActive() === active) {
+      syncSourceButton();
+      return;
+    }
+    var y = window.scrollY;
+    document.body.classList.toggle("source-mode", active);
+    syncSourceButton();
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    window.scrollTo(0, Math.min(y, Math.max(0, max)));
+  }
+
   function currentTheme() {
     var theme = document.documentElement.getAttribute("data-theme");
     return validThemes.indexOf(theme) >= 0 ? theme : "blue";
@@ -154,27 +201,15 @@
     return ok;
   }
 
-  function copyCurrentPath() {
-    if (!currentPath) {
-      setCopyStatus("没有可复制的路径");
-      return;
-    }
-    var request = ++copyGeneration;
-    var requestedPath = currentPath;
-    function settle(text) {
-      if (request !== copyGeneration || currentPath !== requestedPath) {
-        return;
-      }
-      setCopyStatus(text);
-    }
+  function writeClipboard(text, done) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       try {
-        navigator.clipboard.writeText(requestedPath).then(
+        navigator.clipboard.writeText(text).then(
           function () {
-            settle("已复制");
+            done(true);
           },
           function () {
-            settle(fallbackCopy(requestedPath) ? "已复制" : "复制失败");
+            done(fallbackCopy(text));
           }
         );
         return;
@@ -182,7 +217,53 @@
         // Fall through to the textarea fallback.
       }
     }
-    settle(fallbackCopy(requestedPath) ? "已复制" : "复制失败");
+    done(fallbackCopy(text));
+  }
+
+  function copyCurrentPath() {
+    if (!currentPath) {
+      setCopyStatus("没有可复制的路径");
+      return;
+    }
+    var request = ++copyGeneration;
+    var requestedPath = currentPath;
+    writeClipboard(requestedPath, function (ok) {
+      if (request !== copyGeneration || currentPath !== requestedPath) {
+        return;
+      }
+      setCopyStatus(ok ? "已复制" : "复制失败");
+    });
+  }
+
+  function setSourceStatus(el, text) {
+    if (!el) {
+      return;
+    }
+    if (el._sourceStatusTimer) {
+      window.clearTimeout(el._sourceStatusTimer);
+      el._sourceStatusTimer = null;
+    }
+    el.textContent = text;
+    if (text) {
+      el._sourceStatusTimer = window.setTimeout(function () {
+        el._sourceStatusTimer = null;
+        el.textContent = "";
+      }, 2000);
+    }
+  }
+
+  function copySource() {
+    var section = currentSection();
+    var code = section ? section.querySelector(".source-code") : null;
+    var status = section ? section.querySelector(".source-copy-status") : null;
+    var text = code ? code.textContent : "";
+    if (!text) {
+      setSourceStatus(status, "没有可复制的源码");
+      return;
+    }
+    writeClipboard(text, function (ok) {
+      setSourceStatus(status, ok ? "已复制" : "复制失败");
+    });
   }
 
   function closeMobileSidebar() {
@@ -214,7 +295,7 @@
   }
 
   function updateActiveTOC() {
-    if (!toc || activeHeadings.length === 0) {
+    if (!toc || activeHeadings.length === 0 || sourceModeActive()) {
       return;
     }
     var current = activeHeadings[0].id;
@@ -372,6 +453,36 @@
     });
   }
 
+  for (var s = 0; s < settingsTabButtons.length; s++) {
+    settingsTabButtons[s].addEventListener("click", function () {
+      activateSettingsTab(this.getAttribute("data-settings-tab"));
+    });
+  }
+
+  if (settingsTabsEl) {
+    settingsTabsEl.addEventListener("keydown", function (event) {
+      var index = settingsTabButtons.indexOf(document.activeElement);
+      if (index < 0) {
+        return;
+      }
+      var next = index;
+      if (event.key === "ArrowRight") {
+        next = (index + 1) % settingsTabButtons.length;
+      } else if (event.key === "ArrowLeft") {
+        next = (index - 1 + settingsTabButtons.length) % settingsTabButtons.length;
+      } else if (event.key === "Home") {
+        next = 0;
+      } else if (event.key === "End") {
+        next = settingsTabButtons.length - 1;
+      } else {
+        return;
+      }
+      event.preventDefault();
+      activateSettingsTab(settingsTabButtons[next].getAttribute("data-settings-tab"));
+      settingsTabButtons[next].focus();
+    });
+  }
+
   document.addEventListener("click", function (event) {
     var target = event.target;
     if (!target || !target.closest) {
@@ -417,6 +528,35 @@
         "openmd-width",
         document.body.classList.contains("full-width") ? "wide" : "fixed"
       );
+    });
+  }
+
+  if (sourceButton) {
+    sourceButton.addEventListener("click", function () {
+      setSourceMode(!sourceModeActive());
+    });
+  }
+
+  document.addEventListener("click", function (event) {
+    var target = event.target;
+    if (!target || !target.closest) {
+      return;
+    }
+    if (target.closest(".source-copy")) {
+      copySource();
+    }
+  });
+
+  if (toc) {
+    toc.addEventListener("click", function (event) {
+      var target = event.target;
+      if (!target || !target.closest || !target.closest(".toc-link")) {
+        return;
+      }
+      if (sourceModeActive()) {
+        document.body.classList.remove("source-mode");
+        syncSourceButton();
+      }
     });
   }
 
@@ -470,6 +610,26 @@
     }
   });
 
+  document.addEventListener("keydown", function (event) {
+    if (!(event.ctrlKey || event.metaKey) || event.shiftKey || event.altKey) {
+      return;
+    }
+    if (event.key !== "a" && event.key !== "A") {
+      return;
+    }
+    var target = event.target;
+    var code = target && target.closest ? target.closest(".source-code") : null;
+    if (!code) {
+      return;
+    }
+    event.preventDefault();
+    var range = document.createRange();
+    range.selectNodeContents(code);
+    var selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+  });
+
   if (mobileQuery) {
     if (mobileQuery.addEventListener) {
       mobileQuery.addEventListener("change", onViewportChange);
@@ -498,6 +658,7 @@
   }
   syncWidthButton();
   syncMenuButton();
+  syncSourceButton();
   setSettingsOpen(false);
 
   var storedTheme = readPref("openmd-theme");

@@ -76,6 +76,12 @@
       </button>
       <h1 id="doc-title">{{.ActiveTitle}}</h1>
       <div class="topbar-actions">
+        <button type="button" id="source-toggle" class="icon-button" aria-label="查看源码" aria-pressed="false" title="查看源码">
+          <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M7 5.5 3 10l4 4.5"></path>
+            <path d="M13 5.5 17 10l-4 4.5"></path>
+          </svg>
+        </button>
         <button type="button" id="width-toggle" class="icon-button" aria-label="切换全宽阅读" aria-pressed="false" title="切换全宽阅读">
           <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M3.5 10h13"></path>
@@ -92,44 +98,51 @@
         </button>
         <div id="settings-panel" class="settings-panel" role="dialog" aria-label="信息与设置" hidden>
           <div class="settings-header">
-            <span class="settings-title">信息与设置</span>
+            <span class="settings-title">OpenMD</span>
             <button type="button" id="settings-close" class="icon-button settings-close" aria-label="关闭信息与设置" title="关闭信息与设置">
               <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">
                 <path d="M5 5l10 10M15 5 5 15"></path>
               </svg>
             </button>
           </div>
-          <div class="settings-group settings-file">
-            <div class="settings-label">文件</div>
-            <dl class="about-meta file-meta">
-              <div><dt>当前文档</dt><dd id="file-path" class="file-path">{{.ActivePath}}</dd></div>
-              <div><dt>所在目录</dt><dd id="file-dir" class="file-path">{{.ActiveDir}}</dd></div>
-            </dl>
-            <button type="button" id="copy-path" class="copy-path panel-action" aria-label="复制当前文档路径">复制路径</button>
-            <span id="copy-status" class="copy-status" role="status" aria-live="polite"></span>
+          <div class="settings-tabs" role="tablist" aria-label="信息与设置分类">
+            <button type="button" class="settings-tab active" id="settings-tab-button-file" data-settings-tab="file" role="tab" aria-selected="true" aria-controls="settings-panel-file" tabindex="0">文件</button>
+            <button type="button" class="settings-tab" id="settings-tab-button-settings" data-settings-tab="settings" role="tab" aria-selected="false" aria-controls="settings-panel-settings" tabindex="-1">设置</button>
+            <button type="button" class="settings-tab" id="settings-tab-button-about" data-settings-tab="about" role="tab" aria-selected="false" aria-controls="settings-panel-about" tabindex="-1">关于</button>
           </div>
-          <div class="settings-group">
-            <div class="settings-label">配色</div>
-            <div class="theme-grid" role="group" aria-label="配色">
-              <button type="button" class="theme-option" data-theme="blue" aria-pressed="true"><span class="theme-dot theme-dot-blue"></span>海盐蓝</button>
-              <button type="button" class="theme-option" data-theme="teal" aria-pressed="false"><span class="theme-dot theme-dot-teal"></span>松石</button>
-              <button type="button" class="theme-option" data-theme="violet" aria-pressed="false"><span class="theme-dot theme-dot-violet"></span>紫藤</button>
-              <button type="button" class="theme-option" data-theme="graphite" aria-pressed="false"><span class="theme-dot theme-dot-graphite"></span>石墨</button>
-            </div>
-          </div>
-          <div class="settings-group settings-about">
-            <div class="settings-label">关于 OpenMD</div>
-            <dl class="about-meta">
-              <div><dt>作者</dt><dd class="author-line"><a href="{{.AuthorURL}}" target="_blank" rel="noopener noreferrer">{{.AuthorName}}</a></dd></div>
-              <div><dt>版本</dt><dd>{{.VersionLabel}}</dd></div>
-              <div><dt>构建时间</dt><dd>{{.BuildTime}}</dd></div>
-            </dl>
-            {{if .ReleaseAvailable}}
-            <p class="about-hint">GitHub Releases 里最新版本的构建时间晚于当前构建时间时，说明有更新。</p>
-            <a class="release-link panel-action" href="{{.ReleaseURL}}" target="_blank" rel="noopener noreferrer">打开发布页</a>
-            {{else}}
-            <p class="about-hint">开发构建，未提供发布页。</p>
-            {{end}}
+          <div class="settings-body">
+            <section id="settings-panel-file" class="settings-tabpanel" role="tabpanel" aria-labelledby="settings-tab-button-file" data-settings-panel="file">
+              <dl class="about-meta file-meta">
+                <div><dt>当前文档</dt><dd id="file-path" class="file-path">{{.ActivePath}}</dd></div>
+                <div><dt>所在目录</dt><dd id="file-dir" class="file-path">{{.ActiveDir}}</dd></div>
+              </dl>
+              <button type="button" id="copy-path" class="copy-path panel-action" aria-label="复制当前文档路径">复制路径</button>
+              <span id="copy-status" class="copy-status" role="status" aria-live="polite"></span>
+            </section>
+            <section id="settings-panel-settings" class="settings-tabpanel" role="tabpanel" aria-labelledby="settings-tab-button-settings" data-settings-panel="settings" hidden>
+              <div class="settings-group">
+                <div class="settings-label">配色</div>
+                <div class="theme-grid" role="group" aria-label="配色">
+                  <button type="button" class="theme-option" data-theme="blue" aria-pressed="true"><span class="theme-dot theme-dot-blue"></span>海盐蓝</button>
+                  <button type="button" class="theme-option" data-theme="teal" aria-pressed="false"><span class="theme-dot theme-dot-teal"></span>松石</button>
+                  <button type="button" class="theme-option" data-theme="violet" aria-pressed="false"><span class="theme-dot theme-dot-violet"></span>紫藤</button>
+                  <button type="button" class="theme-option" data-theme="graphite" aria-pressed="false"><span class="theme-dot theme-dot-graphite"></span>石墨</button>
+                </div>
+              </div>
+            </section>
+            <section id="settings-panel-about" class="settings-tabpanel" role="tabpanel" aria-labelledby="settings-tab-button-about" data-settings-panel="about" hidden>
+              <dl class="about-meta">
+                <div><dt>作者</dt><dd class="author-line"><a href="{{.AuthorURL}}" target="_blank" rel="noopener noreferrer">{{.AuthorName}}</a></dd></div>
+                <div><dt>版本</dt><dd>{{.VersionLabel}}</dd></div>
+                <div><dt>构建时间</dt><dd>{{.BuildTime}}</dd></div>
+              </dl>
+              {{if .ReleaseAvailable}}
+              <p class="about-hint">GitHub Releases 里最新版本的构建时间晚于当前构建时间时，说明有更新。</p>
+              <a class="release-link panel-action" href="{{.ReleaseURL}}" target="_blank" rel="noopener noreferrer">打开发布页</a>
+              {{else}}
+              <p class="about-hint">开发构建，未提供发布页。</p>
+              {{end}}
+            </section>
           </div>
         </div>
       </div>
@@ -144,11 +157,23 @@
     <div id="doc-content">
       {{$active := .Active}}
       {{range $i, $doc := .Documents}}
-      <section class="doc-section markdown-body" id="{{$doc.ID}}" data-doc-id="{{$doc.ID}}" data-title="{{$doc.Title}}" data-path="{{$doc.Path}}" data-dir="{{$doc.Dir}}"{{if ne $i $active}} hidden{{end}}>
+      <section class="doc-section markdown-body" id="{{$doc.ID}}" data-doc-id="{{$doc.ID}}" data-title="{{$doc.Title}}" data-path="{{$doc.Path}}" data-dir="{{$doc.Dir}}" data-has-source="{{$doc.HasSource}}"{{if ne $i $active}} hidden{{end}}>
         <template class="toc-template">
           {{range $doc.TOC}}<a class="toc-link toc-level-{{.Level}}" href="#{{.ID}}" data-toc-id="{{.ID}}">{{.Text}}</a>{{end}}
         </template>
-        {{$doc.HTML}}
+        <div class="doc-rendered">{{$doc.HTML}}</div>
+        <div class="source-view">
+          <div class="source-toolbar">
+            <span class="source-filename">{{$doc.RelPath}}</span>
+            {{if $doc.HasSource}}<button type="button" class="source-copy panel-action" aria-label="复制当前文档源码">复制源码</button>{{end}}
+            <span class="source-copy-status" role="status" aria-live="polite"></span>
+          </div>
+          {{if $doc.HasSource}}
+          <pre class="chroma light source-code" tabindex="0">{{$doc.SourceHTML}}</pre>
+          {{else}}
+          <p class="source-empty">该文档没有可显示的源码。</p>
+          {{end}}
+        </div>
       </section>
       {{end}}
     </div>

@@ -62,6 +62,8 @@ func buildPageFromSources(mode, title string, initial []sourceDoc) (*Page, error
 		doc.Dir = filepath.Dir(sourceDoc.Path)
 		doc.RelPath = sourceDoc.RelPath
 		doc.Linked = sourceDoc.Linked
+		doc.HasSource = true
+		doc.SourceHTML = sourceHighlighter(sourceDoc.Source)
 		docs = append(docs, *doc)
 	}
 

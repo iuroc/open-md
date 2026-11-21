@@ -44,6 +44,51 @@ func TestRenderPageShowsFilePropertiesPanel(t *testing.T) {
 	}
 }
 
+func TestRenderPageInfoPanelUsesTabs(t *testing.T) {
+	page := &Page{
+		Mode:  "file",
+		Title: "A",
+		Documents: []Document{{
+			ID:    "doc-0",
+			Title: "A",
+			Path:  `C:\docs\a.md`,
+			Dir:   `C:\docs`,
+		}},
+	}
+	out, err := RenderPage(page)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(out)
+	for _, want := range []string{
+		`class="settings-title">OpenMD</span>`,
+		`class="settings-tabs" role="tablist" aria-label="信息与设置分类"`,
+		`id="settings-tab-button-file" data-settings-tab="file" role="tab" aria-selected="true" aria-controls="settings-panel-file" tabindex="0">文件</button>`,
+		`id="settings-tab-button-settings" data-settings-tab="settings" role="tab" aria-selected="false" aria-controls="settings-panel-settings" tabindex="-1">设置</button>`,
+		`id="settings-tab-button-about" data-settings-tab="about" role="tab" aria-selected="false" aria-controls="settings-panel-about" tabindex="-1">关于</button>`,
+		`id="settings-panel-file" class="settings-tabpanel" role="tabpanel" aria-labelledby="settings-tab-button-file" data-settings-panel="file"`,
+		`id="settings-panel-settings" class="settings-tabpanel" role="tabpanel" aria-labelledby="settings-tab-button-settings" data-settings-panel="settings" hidden`,
+		`id="settings-panel-about" class="settings-tabpanel" role="tabpanel" aria-labelledby="settings-tab-button-about" data-settings-panel="about" hidden`,
+		`id="file-path"`,
+		`id="copy-path"`,
+		`data-theme="blue"`,
+	} {
+		if !strings.Contains(s, want) {
+			t.Fatalf("missing %q in panel tabs", want)
+		}
+	}
+	for _, banned := range []string{
+		`class="settings-label">文件<`,
+		`class="settings-label">设置<`,
+		`class="settings-label">关于<`,
+		`class="settings-label">关于 OpenMD<`,
+	} {
+		if strings.Contains(s, banned) {
+			t.Fatalf("duplicated group heading %q", banned)
+		}
+	}
+}
+
 func TestBuildFilePageNormalizesRelativeArgument(t *testing.T) {
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "note.md"), []byte("# Title\n"), 0644); err != nil {
@@ -206,6 +251,56 @@ func TestRenderPageContainsEmbeddedUIAndCSP(t *testing.T) {
 	}
 }
 
+func TestRenderPageSourceToggleAndBlocks(t *testing.T) {
+	page := &Page{
+		Mode:  "file",
+		Title: "A",
+		Documents: []Document{
+			{
+				ID:         "doc-0",
+				Title:      "A",
+				RelPath:    "a.md",
+				HTML:       template.HTML("<p>a</p>"),
+				SourceHTML: template.HTML(`<span class="gh"># A</span>`),
+				HasSource:  true,
+			},
+			{
+				ID:      "doc-1",
+				Title:   "B",
+				RelPath: "b.md",
+				HTML:    template.HTML("<p>b</p>"),
+			},
+		},
+	}
+	out, err := RenderPage(page)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(out)
+	for _, want := range []string{
+		`id="source-toggle"`,
+		`aria-pressed="false"`,
+		`aria-label="查看源码"`,
+		`class="doc-rendered"`,
+		`class="source-view"`,
+		`class="source-toolbar"`,
+		`class="source-filename"`,
+		`class="chroma light source-code"`,
+		`data-has-source="true"`,
+		`data-has-source="false"`,
+		`复制源码`,
+		`该文档没有可显示的源码`,
+		`<span class="gh"># A</span>`,
+	} {
+		if !strings.Contains(s, want) {
+			t.Fatalf("missing %q in page", want)
+		}
+	}
+	if got := strings.Count(s, `class="source-copy panel-action"`); got != 1 {
+		t.Fatalf("source copy button count = %d, want 1", got)
+	}
+}
+
 func TestRenderPageDirectoryUsesSidebarTabs(t *testing.T) {
 	page := &Page{
 		Mode:  "dir",
@@ -240,6 +335,15 @@ func TestRenderPageDirectoryUsesSidebarTabs(t *testing.T) {
 	}
 	if !strings.Contains(s, `data-tab-panel="toc" role="tabpanel" aria-labelledby="tab-button-toc" hidden`) {
 		t.Fatal("outline panel must be hidden by default")
+	}
+}
+
+func TestReaderCSSKeepsTableHeadersOnOneLine(t *testing.T) {
+	if !strings.Contains(readerCSS, ".markdown-body table th {") {
+		t.Fatal("table header rule missing")
+	}
+	if !strings.Contains(readerCSS, "white-space: nowrap;") {
+		t.Fatal("table header rule must keep headers on one line")
 	}
 }
 

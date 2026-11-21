@@ -3,12 +3,16 @@ package render
 import (
 	"bytes"
 	"fmt"
+	stdhtml "html"
 	"html/template"
 	"path/filepath"
 	"strings"
 	"unicode"
 
+	"github.com/alecthomas/chroma/v2"
 	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
+	"github.com/alecthomas/chroma/v2/lexers"
+	"github.com/alecthomas/chroma/v2/styles"
 	"github.com/yuin/goldmark"
 	highlighting "github.com/yuin/goldmark-highlighting/v2"
 	"github.com/yuin/goldmark/ast"
@@ -25,14 +29,16 @@ type Heading struct {
 }
 
 type Document struct {
-	Path    string
-	Dir     string
-	RelPath string
-	ID      string
-	Title   string
-	HTML    template.HTML
-	TOC     []Heading
-	Linked  bool
+	Path       string
+	Dir        string
+	RelPath    string
+	ID         string
+	Title      string
+	HTML       template.HTML
+	SourceHTML template.HTML
+	HasSource  bool
+	TOC        []Heading
+	Linked     bool
 }
 
 type RenderOptions struct {
@@ -62,6 +68,46 @@ func newMarkdown(docID string) goldmark.Markdown {
 			renderer.WithNodeRenderers(util.Prioritized(&safeLinkRenderer{}, 100)),
 		),
 	)
+}
+
+// highlightSource renders the original Markdown as Chroma token HTML. The
+// template owns the surrounding <pre>, so the output only contains token
+// spans and escaped text.
+func highlightSource(source []byte) template.HTML {
+	lexer := lexers.Get("markdown")
+	if lexer != nil {
+		lexer = chroma.Coalesce(lexer)
+	}
+	return highlightSourceWith(lexer, source)
+}
+
+// sourceHighlighter is replaceable in tests to exercise the fallback path.
+var sourceHighlighter = highlightSource
+
+func highlightSourceWith(lexer chroma.Lexer, source []byte) template.HTML {
+	if len(source) == 0 {
+		return template.HTML("")
+	}
+	fallback := func() template.HTML {
+		return template.HTML(stdhtml.EscapeString(string(source)))
+	}
+	if lexer == nil {
+		return fallback()
+	}
+	iterator, err := lexer.Tokenise(nil, string(source))
+	if err != nil || iterator == nil {
+		return fallback()
+	}
+	formatter := chromahtml.New(
+		chromahtml.WithClasses(true),
+		chromahtml.WithModeClasses(true),
+		chromahtml.PreventSurroundingPre(true),
+	)
+	var buf bytes.Buffer
+	if err := formatter.Format(&buf, styles.Get("github"), iterator); err != nil {
+		return fallback()
+	}
+	return template.HTML(buf.String())
 }
 
 func RenderMarkdown(source []byte, sourcePath string, opts RenderOptions) (*Document, error) {
