@@ -1331,6 +1331,11 @@ body.split-mode .doc-section .source-view {
   overflow-y: auto;
   overscroll-behavior: contain;
   border-right: 1px solid var(--border);
+  scrollbar-width: none;
+}
+
+body.split-mode .doc-section .source-view::-webkit-scrollbar {
+  display: none;
 }
 
 body.split-mode .doc-section .doc-rendered {

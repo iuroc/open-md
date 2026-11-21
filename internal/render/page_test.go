@@ -507,10 +507,15 @@ func TestReaderCSSSupportsSplitView(t *testing.T) {
 		"grid-row: 1;",
 		"overflow-y: auto;",
 		"border-right: 1px solid var(--border);",
+		"scrollbar-width: none;",
 	} {
 		if !strings.Contains(source, want) {
 			t.Fatalf("split source rule missing %q: %s", want, source)
 		}
+	}
+	scrollbar := readerCSSRule(t, "body.split-mode .doc-section .source-view::-webkit-scrollbar {")
+	if !strings.Contains(scrollbar, "display: none;") {
+		t.Fatalf("split source scrollbar must be hidden: %s", scrollbar)
 	}
 	for _, banned := range []string{"background: var(--bg-subtle);", "border-bottom"} {
 		if strings.Contains(source, banned) {
