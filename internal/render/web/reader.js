@@ -13,6 +13,8 @@
   var sourceStorageKey = "openmd-source:" + rootKey;
   var sidebarScrollKey = "openmd-sidebar-scroll:" + rootKey;
   var sidebarScrollTimer = null;
+  var bodyScrollTimer = null;
+  var suppressTreeScrollOnce = false;
   var tabButtons = Array.prototype.slice.call(document.querySelectorAll(".sidebar-tab"));
   var tabPanels = Array.prototype.slice.call(document.querySelectorAll(".tab-panel"));
   var toc = document.getElementById("toc");
@@ -138,16 +140,25 @@
     sourceButton.title = label;
   }
 
+  function scrollWindowTo(top) {
+    var html = document.documentElement;
+    var previous = html.style.scrollBehavior;
+    html.style.scrollBehavior = "auto";
+    window.scrollTo(0, top);
+    html.style.scrollBehavior = previous;
+  }
+
   function setSourceMode(active) {
     if (sourceModeActive() === active) {
       syncSourceButton();
       return;
     }
-    var y = window.scrollY;
+    var maxBefore = document.documentElement.scrollHeight - window.innerHeight;
+    var ratio = maxBefore > 0 ? window.scrollY / maxBefore : 0;
     document.body.classList.toggle("source-mode", active);
     syncSourceButton();
     var max = document.documentElement.scrollHeight - window.innerHeight;
-    window.scrollTo(0, Math.min(y, Math.max(0, max)));
+    scrollWindowTo(ratio * Math.max(0, max));
   }
 
   function currentTheme() {
@@ -618,8 +629,12 @@
     }
     var pendingHash = document.documentElement.classList.contains("openmd-hash-load");
     var active = pendingHash ? null : markActiveTree();
-    if (!pendingHash && !restoreSidebarScroll()) {
+    var restored = restoreSidebarScroll();
+    if (!restored && !pendingHash) {
       scrollActiveTreeIntoView(active);
+    }
+    if (restored && pendingHash) {
+      suppressTreeScrollOnce = true;
     }
     saveTreeExpanded();
     docList.addEventListener("click", function (event) {
@@ -697,7 +712,7 @@
     var section = document.querySelector("#doc-content .doc-section");
     if (section) {
       showDoc(section.getAttribute("data-doc-id"), anchor, false);
-      revealPage();
+      finishInitialReveal(!!anchor);
       return;
     }
     generation = ++navGeneration;
@@ -748,6 +763,7 @@
   }
 
   var navGeneration = 0;
+  var initialScrollRestore = true;
   var initialFile = "";
   var initialPageAnchor = "";
   var initialTreePath = "";
@@ -826,7 +842,11 @@
         links[j].classList.add("active");
         links[j].setAttribute("aria-current", "page");
         expandTreeAncestors(links[j]);
-        scrollActiveTreeIntoView(links[j]);
+        if (suppressTreeScrollOnce) {
+          suppressTreeScrollOnce = false;
+        } else {
+          scrollActiveTreeIntoView(links[j]);
+        }
         return;
       }
     }
@@ -834,6 +854,57 @@
 
   function revealPage() {
     document.documentElement.classList.add("openmd-ready");
+  }
+
+  function bodyScrollKey() {
+    return "openmd-scroll:" + rootKey + ":" + activePath;
+  }
+
+  function saveBodyScroll() {
+    if (!isDocPage || !activePath) {
+      return;
+    }
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    var ratio = max > 0 ? window.scrollY / max : 0;
+    try {
+      sessionStorage.setItem(bodyScrollKey(), String(ratio));
+    } catch (err) {}
+  }
+
+  function restoreBodyScroll() {
+    if (!activePath) {
+      return;
+    }
+    var stored;
+    try {
+      stored = sessionStorage.getItem(bodyScrollKey());
+    } catch (err) {
+      return;
+    }
+    if (stored === null || stored === "") {
+      return;
+    }
+    var ratio = parseFloat(stored);
+    if (isNaN(ratio)) {
+      return;
+    }
+    ratio = Math.max(0, Math.min(1, ratio));
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    scrollWindowTo(ratio * Math.max(0, max));
+  }
+
+  function finishInitialReveal(skipRestore) {
+    if (!initialScrollRestore) {
+      revealPage();
+      return;
+    }
+    initialScrollRestore = false;
+    window.requestAnimationFrame(function () {
+      if (!skipRestore) {
+        restoreBodyScroll();
+      }
+      revealPage();
+    });
   }
 
   function replaceSections(page, anchor) {
@@ -845,7 +916,7 @@
     sections = Array.prototype.slice.call(document.querySelectorAll(".doc-section"));
     showDoc("doc", anchor, false);
     document.documentElement.classList.remove("openmd-hash-load");
-    revealPage();
+    finishInitialReveal(!!anchor);
     return true;
   }
 
@@ -857,6 +928,7 @@
       var content = document.getElementById("doc-content");
       if (content) {
         content.innerHTML = '<p class="read-error">无法加载文档内容</p>';
+        initialScrollRestore = false;
         revealPage();
       }
       return;
@@ -1159,6 +1231,11 @@
       }, { passive: true });
       window.addEventListener("pagehide", saveSidebarScroll);
     }
+    window.addEventListener("scroll", function () {
+      clearTimeout(bodyScrollTimer);
+      bodyScrollTimer = setTimeout(saveBodyScroll, 120);
+    }, { passive: true });
+    window.addEventListener("pagehide", saveBodyScroll);
     initDocPage();
   } else {
     initialDoc();

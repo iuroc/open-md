@@ -42,6 +42,12 @@
     }
   } catch (err) {}
 
+  try {
+    if ("scrollRestoration" in history) {
+      history.scrollRestoration = "manual";
+    }
+  } catch (err) {}
+
   window.setTimeout(function () {
     document.documentElement.classList.add("openmd-ready");
   }, 1500);

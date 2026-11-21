@@ -424,6 +424,7 @@ func TestDocPageFadesInOnBoot(t *testing.T) {
 		"html.openmd-booting.openmd-ready body { opacity: 1; transition: opacity 180ms ease; }",
 		"openmd-booting",
 		"openmd-ready",
+		`history.scrollRestoration = "manual"`,
 	} {
 		if !strings.Contains(docPageTemplateSource, want) {
 			t.Fatalf("doc page missing %q", want)
@@ -432,6 +433,23 @@ func TestDocPageFadesInOnBoot(t *testing.T) {
 	hidden := readerCSSRule(t, "html.openmd-hash-load #doc-content {")
 	if !strings.Contains(hidden, "visibility: hidden;") {
 		t.Fatalf("hash-loaded content must start hidden: %s", hidden)
+	}
+}
+
+func TestReaderJSPersistsScrollPositions(t *testing.T) {
+	for _, want := range []string{
+		"openmd-scroll:",
+		"saveBodyScroll",
+		"restoreBodyScroll",
+		"finishInitialReveal",
+		"suppressTreeScrollOnce",
+		"var restored = restoreSidebarScroll();",
+		"scrollWindowTo",
+		"maxBefore",
+	} {
+		if !strings.Contains(readerJS, want) {
+			t.Fatalf("reader.js missing %q", want)
+		}
 	}
 }
 
