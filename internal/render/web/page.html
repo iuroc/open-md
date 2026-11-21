@@ -42,7 +42,15 @@
         <button type="button" class="sidebar-tab" id="tab-button-toc" data-tab="toc" role="tab" aria-selected="false" aria-controls="tab-panel-toc">大纲</button>
       </div>
       <div class="tab-panel" id="tab-panel-files" data-tab-panel="files" role="tabpanel" aria-labelledby="tab-button-files">
-        <nav id="doc-list" aria-label="文档">{{template "doc-items" .}}</nav>
+        <nav id="doc-list" class="doc-tree" aria-label="文档">
+          <ul class="tree-root">{{template "tree-nodes" .Tree}}</ul>
+          {{if .LinkedDocuments}}
+          <div class="tree-section-label">链接文档</div>
+          <ul class="tree-root linked-tree">
+            {{range .LinkedDocuments}}<li class="tree-node tree-file">{{template "doc-item" .}}</li>{{end}}
+          </ul>
+          {{end}}
+        </nav>
       </div>
       <div class="tab-panel" id="tab-panel-toc" data-tab-panel="toc" role="tabpanel" aria-labelledby="tab-button-toc" hidden>
         <nav id="toc" aria-label="大纲"></nav>
@@ -164,7 +172,7 @@
         <div class="doc-rendered">{{$doc.HTML}}</div>
         <div class="source-view">
           <div class="source-toolbar">
-            <span class="source-filename">{{$doc.RelPath}}</span>
+            <span class="source-filename" title="{{$doc.RelPath}}">{{$doc.RelPath}}</span>
             {{if $doc.HasSource}}<button type="button" class="source-copy panel-action" aria-label="复制当前文档源码">复制源码</button>{{end}}
             <span class="source-copy-status" role="status" aria-live="polite"></span>
           </div>
@@ -185,10 +193,32 @@
 </body>
 </html>
 {{define "doc-items"}}
-{{range .Documents}}
-<button type="button" class="doc-item{{if eq .ID $.ActiveID}} active{{end}}{{if .Linked}} linked{{end}}" data-doc-target="{{.ID}}" title="{{.RelPath}}">
+{{range .Documents}}{{template "doc-item" .}}{{end}}
+{{end}}
+
+{{define "doc-item"}}
+<button type="button" class="doc-item{{if .Active}} active{{end}}{{if .Linked}} linked{{end}}" data-doc-target="{{.ID}}" title="{{.RelPath}}">
   <span class="doc-title">{{.Title}}</span>
   <span class="doc-path">{{.RelPath}}</span>
 </button>
+{{end}}
+
+{{define "tree-nodes"}}
+{{range .}}
+{{if .IsDir}}
+<li class="tree-node tree-dir">
+  <button type="button" class="tree-toggle" data-tree-folder aria-expanded="{{if .Expanded}}true{{else}}false{{end}}" title="{{.RelPath}}">
+    <span class="tree-caret" aria-hidden="true"></span>
+    <span class="tree-label">{{.Name}}</span>
+  </button>
+  <ul class="tree-children"{{if not .Expanded}} hidden{{end}}>{{template "tree-nodes" .Children}}</ul>
+</li>
+{{else}}
+<li class="tree-node tree-file">
+  <button type="button" class="tree-file-button{{if .Active}} active{{end}}" data-doc-target="{{.DocID}}" title="{{if .Title}}{{.Title}} — {{end}}{{.RelPath}}"{{if .Active}} aria-current="true"{{end}}>
+    <span class="tree-label">{{.Name}}</span>
+  </button>
+</li>
+{{end}}
 {{end}}
 {{end}}

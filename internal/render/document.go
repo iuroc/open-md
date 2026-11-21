@@ -39,6 +39,7 @@ type Document struct {
 	HasSource  bool
 	TOC        []Heading
 	Linked     bool
+	Active     bool
 }
 
 type RenderOptions struct {

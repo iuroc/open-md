@@ -40,60 +40,60 @@ func registerLessAlias() {
 func openmdMarkdownRules() chroma.Rules {
 	return chroma.Rules{
 		"root": {
-			{`<!--[\w\W]*?-->`, chroma.CommentMultiline, nil},
+			{Pattern: `<!--[\w\W]*?-->`, Type: chroma.CommentMultiline},
 
 			// Fenced code first: it consumes its whole body so the rules
 			// below cannot reinterpret code as Markdown syntax.
-			{"^(```)(\\w+)(\\n)([\\w\\W]*?)(^```$)", chroma.UsingByGroup(2, 4, chroma.String, chroma.String, chroma.String, chroma.Text, chroma.String), nil},
-			{"^(```\\n)([\\w\\W]*?)(^```$)", chroma.ByGroups(chroma.String, chroma.Text, chroma.String), nil},
+			{Pattern: "^(```)(\\w+)(\\n)([\\w\\W]*?)(^```$)", Type: chroma.UsingByGroup(2, 4, chroma.String, chroma.String, chroma.String, chroma.Text, chroma.String)},
+			{Pattern: "^(```\\n)([\\w\\W]*?)(^```$)", Type: chroma.ByGroups(chroma.String, chroma.Text, chroma.String)},
 
-			{`^(#[^#].+\n)`, chroma.GenericHeading, nil},
-			{`^(#{2,6}.+\n)`, chroma.GenericSubheading, nil},
+			{Pattern: `^(#[^#].+\n)`, Type: chroma.GenericHeading},
+			{Pattern: `^(#{2,6}.+\n)`, Type: chroma.GenericSubheading},
 
 			// GFM tables that start with a pipe. Four or more leading spaces
 			// are left alone so indented code is not mistaken for a table.
-			{`^( {0,3})(\|)`, chroma.ByGroups(chroma.Text, chroma.Operator), chroma.Push("table")},
+			{Pattern: `^( {0,3})(\|)`, Type: chroma.ByGroups(chroma.Text, chroma.Operator), Mutator: chroma.Push("table")},
 
-			{`^([ \t]*\[\^[^\]\n]+\]:)(.*\n?)`, chroma.ByGroups(chroma.NameEntity, chroma.UsingSelf("inline")), nil},
-			{`^([ \t]*\[)([^\]\n]+)(\]:)([ \t]*)(\S+)(.*)$`, chroma.ByGroups(chroma.Text, chroma.NameTag, chroma.Punctuation, chroma.Text, chroma.NameAttribute, chroma.Text), nil},
+			{Pattern: `^([ \t]*\[\^[^\]\n]+\]:)(.*\n?)`, Type: chroma.ByGroups(chroma.NameEntity, chroma.UsingSelf("inline"))},
+			{Pattern: `^([ \t]*\[)([^\]\n]+)(\]:)([ \t]*)(\S+)(.*)$`, Type: chroma.ByGroups(chroma.Text, chroma.NameTag, chroma.Punctuation, chroma.Text, chroma.NameAttribute, chroma.Text)},
 
-			{`^(\s*)([*-] )(\[[ xX]\])( .+\n)`, chroma.ByGroups(chroma.Text, chroma.Keyword, chroma.Keyword, chroma.UsingSelf("inline")), nil},
-			{`^(\s*)([*-])(\s)(.+\n)`, chroma.ByGroups(chroma.Text, chroma.Keyword, chroma.Text, chroma.UsingSelf("inline")), nil},
-			{`^(\s*)([0-9]+\.)( .+\n)`, chroma.ByGroups(chroma.Text, chroma.Keyword, chroma.UsingSelf("inline")), nil},
-			{`^(\s*>\s)(.+\n)`, chroma.ByGroups(chroma.Keyword, chroma.GenericEmph), nil},
+			{Pattern: `^(\s*)([*-] )(\[[ xX]\])( .+\n)`, Type: chroma.ByGroups(chroma.Text, chroma.Keyword, chroma.Keyword, chroma.UsingSelf("inline"))},
+			{Pattern: `^(\s*)([*-])(\s)(.+\n)`, Type: chroma.ByGroups(chroma.Text, chroma.Keyword, chroma.Text, chroma.UsingSelf("inline"))},
+			{Pattern: `^(\s*)([0-9]+\.)( .+\n)`, Type: chroma.ByGroups(chroma.Text, chroma.Keyword, chroma.UsingSelf("inline"))},
+			{Pattern: `^(\s*>\s)(.+\n)`, Type: chroma.ByGroups(chroma.Keyword, chroma.GenericEmph)},
 
 			// Setext headings are checked after line prefixes so a list item
 			// followed by --- is not mistaken for a heading.
-			{`^(.+)(\n)(=+[ \t]*\n)`, chroma.ByGroups(chroma.GenericHeading, chroma.Text, chroma.GenericHeading), nil},
-			{`^(.+)(\n)(-+[ \t]*\n)`, chroma.ByGroups(chroma.GenericSubheading, chroma.Text, chroma.GenericSubheading), nil},
+			{Pattern: `^(.+)(\n)(=+[ \t]*\n)`, Type: chroma.ByGroups(chroma.GenericHeading, chroma.Text, chroma.GenericHeading)},
+			{Pattern: `^(.+)(\n)(-+[ \t]*\n)`, Type: chroma.ByGroups(chroma.GenericSubheading, chroma.Text, chroma.GenericSubheading)},
 
 			chroma.Include("inline"),
 		},
 		"table": {
-			{`\|`, chroma.Operator, nil},
-			{`[ \t]*:?-{3,}:?[ \t]*`, chroma.Keyword, nil},
-			{`[^|\n]+`, chroma.UsingSelf("inline"), nil},
-			{`\n`, chroma.Text, chroma.Pop(1)},
+			{Pattern: `\|`, Type: chroma.Operator},
+			{Pattern: `[ \t]*:?-{3,}:?[ \t]*`, Type: chroma.Keyword},
+			{Pattern: `[^|\n]+`, Type: chroma.UsingSelf("inline")},
+			{Pattern: `\n`, Type: chroma.Text, Mutator: chroma.Pop(1)},
 		},
 		"inline": {
-			{`<!--[\w\W]*?-->`, chroma.CommentMultiline, nil},
-			{`\\.`, chroma.Text, nil},
+			{Pattern: `<!--[\w\W]*?-->`, Type: chroma.CommentMultiline},
+			{Pattern: `\\.`, Type: chroma.Text},
 
 			// Autolinks must be checked before generic HTML tags.
-			{`(<)((?:https?|ftp|mailto):[^>\n]+)(>)`, chroma.ByGroups(chroma.Punctuation, chroma.NameAttribute, chroma.Punctuation), nil},
-			{`(<)([^<>\s@]+@[^<>\s@]+\.[^<>\s@]+)(>)`, chroma.ByGroups(chroma.Punctuation, chroma.NameAttribute, chroma.Punctuation), nil},
-			{`(</?)([A-Za-z][\w:-]*)([^>\n]*)(/?>)`, chroma.ByGroups(chroma.Punctuation, chroma.NameTag, chroma.NameAttribute, chroma.Punctuation), nil},
+			{Pattern: `(<)((?:https?|ftp|mailto):[^>\n]+)(>)`, Type: chroma.ByGroups(chroma.Punctuation, chroma.NameAttribute, chroma.Punctuation)},
+			{Pattern: `(<)([^<>\s@]+@[^<>\s@]+\.[^<>\s@]+)(>)`, Type: chroma.ByGroups(chroma.Punctuation, chroma.NameAttribute, chroma.Punctuation)},
+			{Pattern: `(</?)([A-Za-z][\w:-]*)([^>\n]*)(/?>)`, Type: chroma.ByGroups(chroma.Punctuation, chroma.NameTag, chroma.NameAttribute, chroma.Punctuation)},
 
-			{`(\s)(\*|_)((?:(?!\2).)*)(\2)((?=\W|\n))`, chroma.ByGroups(chroma.Text, chroma.GenericEmph, chroma.GenericEmph, chroma.GenericEmph, chroma.Text), nil},
-			{`(\s)((\*\*|__).*?)\3((?=\W|\n))`, chroma.ByGroups(chroma.Text, chroma.GenericStrong, chroma.GenericStrong, chroma.Text), nil},
-			{`(\s)(~~[^~]+~~)((?=\W|\n))`, chroma.ByGroups(chroma.Text, chroma.GenericDeleted, chroma.Text), nil},
-			{"`[^`]+`", chroma.LiteralStringBacktick, nil},
+			{Pattern: `(\s)(\*|_)((?:(?!\2).)*)(\2)((?=\W|\n))`, Type: chroma.ByGroups(chroma.Text, chroma.GenericEmph, chroma.GenericEmph, chroma.GenericEmph, chroma.Text)},
+			{Pattern: `(\s)((\*\*|__).*?)\3((?=\W|\n))`, Type: chroma.ByGroups(chroma.Text, chroma.GenericStrong, chroma.GenericStrong, chroma.Text)},
+			{Pattern: `(\s)(~~[^~]+~~)((?=\W|\n))`, Type: chroma.ByGroups(chroma.Text, chroma.GenericDeleted, chroma.Text)},
+			{Pattern: "`[^`]+`", Type: chroma.LiteralStringBacktick},
 
-			{`\[\^[^\]\n]+\]`, chroma.NameEntity, nil},
-			{`(!?\[)([^\]\n]+)(\])(\[)([^\]\n]*)(\])`, chroma.ByGroups(chroma.Text, chroma.NameTag, chroma.Text, chroma.Text, chroma.NameAttribute, chroma.Text), nil},
-			{`(!?\[)([^]]+)(\])(\()([^)]+)(\))`, chroma.ByGroups(chroma.Text, chroma.NameTag, chroma.Text, chroma.Text, chroma.NameAttribute, chroma.Text), nil},
-			{`[@#][\w/:]+`, chroma.NameEntity, nil},
-			{`.|\n`, chroma.Text, nil},
+			{Pattern: `\[\^[^\]\n]+\]`, Type: chroma.NameEntity},
+			{Pattern: `(!?\[)([^\]\n]+)(\])(\[)([^\]\n]*)(\])`, Type: chroma.ByGroups(chroma.Text, chroma.NameTag, chroma.Text, chroma.Text, chroma.NameAttribute, chroma.Text)},
+			{Pattern: `(!?\[)([^]]+)(\])(\()([^)]+)(\))`, Type: chroma.ByGroups(chroma.Text, chroma.NameTag, chroma.Text, chroma.Text, chroma.NameAttribute, chroma.Text)},
+			{Pattern: `[@#][\w/:]+`, Type: chroma.NameEntity},
+			{Pattern: `.|\n`, Type: chroma.Text},
 		},
 	}
 }

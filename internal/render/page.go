@@ -21,6 +21,7 @@ type Page struct {
 	Title     string
 	Active    int
 	Documents []Document
+	Tree      []*TreeNode
 	Warnings  []string
 }
 
@@ -50,6 +51,7 @@ type pageData struct {
 	ActivePath       string
 	ActiveDir        string
 	Documents        []Document
+	Tree             []*TreeNode
 	LinkedDocuments  []Document
 	Warnings         []string
 	VersionLabel     string
@@ -121,10 +123,13 @@ func RenderPage(page *Page) ([]byte, error) {
 		activePath = page.Documents[page.Active].Path
 		activeDir = page.Documents[page.Active].Dir
 	}
+	docs := make([]Document, len(page.Documents))
+	copy(docs, page.Documents)
 	var linkedDocs []Document
-	for _, doc := range page.Documents {
-		if doc.Linked {
-			linkedDocs = append(linkedDocs, doc)
+	for i := range docs {
+		docs[i].Active = i == page.Active
+		if docs[i].Linked {
+			linkedDocs = append(linkedDocs, docs[i])
 		}
 	}
 	data := pageData{
@@ -135,7 +140,8 @@ func RenderPage(page *Page) ([]byte, error) {
 		ActiveTitle:      activeTitle,
 		ActivePath:       activePath,
 		ActiveDir:        activeDir,
-		Documents:        page.Documents,
+		Documents:        docs,
+		Tree:             page.Tree,
 		LinkedDocuments:  linkedDocs,
 		Warnings:         page.Warnings,
 		VersionLabel:     buildinfo.VersionLabel(),

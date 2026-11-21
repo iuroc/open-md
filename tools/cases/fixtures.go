@@ -141,7 +141,7 @@ func LightFixtures() []Fixture {
 		fixture("literal/link.md", "# 字面优先\n\n[链接 a%20b.md](a%20b.md)\n\n应打开字面的 `a%20b.md`，不是 `a b.md`。\n"),
 		fixture("literal/a%20b.md", "# 字面百分号文件\n\n这个文件才应被打开。\n"),
 		fixture("literal/a b.md", "# 空格文件\n\n不应被打开。\n"),
-		fixture("sub/nested.md", "# 子目录文档\n\n当前目录模式不应在根列表中显示本文件。\n"),
+		fixture("sub/nested.md", "# 子目录文档\n\n递归扫描后应出现在 `sub/` 文件夹下。\n"),
 
 		fixture("tree/root.md",
 			"# 文件树根\n\n"+

@@ -13,20 +13,30 @@ type Limits struct {
 	MaxDocs       int
 	MaxTotalBytes int64
 	MaxFileBytes  int64
+	MaxDepth      int
+	MaxEntries    int
 }
 
-var DefaultLimits = Limits{MaxDocs: 500, MaxTotalBytes: 25 << 20, MaxFileBytes: 32 << 20}
+var DefaultLimits = Limits{
+	MaxDocs:       500,
+	MaxTotalBytes: 25 << 20,
+	MaxFileBytes:  32 << 20,
+	MaxDepth:      12,
+	MaxEntries:    20000,
+}
 
 type Document struct {
-	Path string
-	Name string
-	Size int64
+	Path    string
+	Name    string
+	RelPath string
+	Size    int64
 }
 
 type SkippedDocument struct {
-	Path string
-	Name string
-	Size int64
+	Path    string
+	Name    string
+	RelPath string
+	Size    int64
 }
 
 type Result struct {
@@ -41,11 +51,165 @@ var (
 	ErrNoLoadableMarkdown = errors.New("目录中的 Markdown 文件均超过大小限制，无法加载")
 )
 
+var ignoredDirectories = map[string]bool{
+	".git":                      true,
+	".svn":                      true,
+	".hg":                       true,
+	"node_modules":              true,
+	"vendor":                    true,
+	".obsidian":                 true,
+	".trash":                    true,
+	"$recycle.bin":              true,
+	"system volume information": true,
+}
+
+type candidate struct {
+	path    string
+	name    string
+	relPath string
+	size    int64
+	depth   int
+}
+
 func Directory(dir string, limits Limits) (*Result, error) {
 	abs, err := filepath.Abs(dir)
 	if err != nil {
 		return nil, fmt.Errorf("无法解析目录路径: %w", err)
 	}
+	abs = filepath.Clean(abs)
+	limits = withDefaults(limits)
+	perFileBudget := limits.MaxFileBytes
+	if perFileBudget > limits.MaxTotalBytes {
+		perFileBudget = limits.MaxTotalBytes
+	}
+
+	result := &Result{}
+	candidates := make([]candidate, 0)
+	visited := 0
+	stopped := false
+	depthWarned := false
+
+	var walk func(current string, depth int) error
+	walk = func(current string, depth int) error {
+		entries, err := os.ReadDir(current)
+		if err != nil {
+			if depth == 0 {
+				return fmt.Errorf("无法读取目录: %w", err)
+			}
+			result.Warnings = append(result.Warnings, "无法读取目录："+relPath(abs, current))
+			return nil
+		}
+		sort.SliceStable(entries, func(i, j int) bool {
+			return naturalLess(entries[i].Name(), entries[j].Name())
+		})
+		for _, entry := range entries {
+			if stopped {
+				return nil
+			}
+			visited++
+			if visited > limits.MaxEntries {
+				result.Warnings = append(result.Warnings, fmt.Sprintf(
+					"目录项过多，扫描范围已截断（上限 %d 项）", limits.MaxEntries,
+				))
+				stopped = true
+				return nil
+			}
+			name := entry.Name()
+			full := filepath.Join(current, name)
+			if isReparsePoint(full) {
+				continue
+			}
+			if entry.IsDir() {
+				if ignoredDirectories[strings.ToLower(name)] {
+					continue
+				}
+				if depth+1 > limits.MaxDepth {
+					if !depthWarned {
+						result.Warnings = append(result.Warnings, fmt.Sprintf(
+							"部分子目录超过最大扫描深度（%d 层），已跳过", limits.MaxDepth,
+						))
+						depthWarned = true
+					}
+					continue
+				}
+				if err := walk(full, depth+1); err != nil {
+					return err
+				}
+				continue
+			}
+			ext := strings.ToLower(filepath.Ext(name))
+			if ext != ".md" && ext != ".markdown" {
+				continue
+			}
+			info, err := entry.Info()
+			if err != nil {
+				result.Warnings = append(result.Warnings, "无法读取文件信息："+relPath(abs, full))
+				continue
+			}
+			rel := relPath(abs, full)
+			if info.Size() > perFileBudget {
+				result.Skipped = append(result.Skipped, SkippedDocument{
+					Path:    full,
+					Name:    name,
+					RelPath: rel,
+					Size:    info.Size(),
+				})
+				result.Warnings = append(result.Warnings, fmt.Sprintf(
+					"文件过大，已跳过：%s（%s）", rel, formatSize(info.Size()),
+				))
+				continue
+			}
+			candidates = append(candidates, candidate{
+				path:    full,
+				name:    name,
+				relPath: rel,
+				size:    info.Size(),
+				depth:   depth,
+			})
+		}
+		return nil
+	}
+
+	if err := walk(abs, 0); err != nil {
+		return nil, err
+	}
+
+	if len(candidates) == 0 {
+		if len(result.Skipped) > 0 {
+			return nil, ErrNoLoadableMarkdown
+		}
+		return nil, ErrNoMarkdown
+	}
+
+	sort.SliceStable(candidates, func(i, j int) bool {
+		if candidates[i].depth != candidates[j].depth {
+			return candidates[i].depth < candidates[j].depth
+		}
+		return naturalPathLess(candidates[i].relPath, candidates[j].relPath)
+	})
+
+	var total int64
+	for _, c := range candidates {
+		if len(result.Documents) >= limits.MaxDocs {
+			result.Truncated = true
+			break
+		}
+		if total+c.size > limits.MaxTotalBytes {
+			result.Truncated = true
+			break
+		}
+		total += c.size
+		result.Documents = append(result.Documents, Document{
+			Path:    c.path,
+			Name:    c.name,
+			RelPath: c.relPath,
+			Size:    c.size,
+		})
+	}
+	return result, nil
+}
+
+func withDefaults(limits Limits) Limits {
 	if limits.MaxDocs <= 0 {
 		limits.MaxDocs = DefaultLimits.MaxDocs
 	}
@@ -55,68 +219,38 @@ func Directory(dir string, limits Limits) (*Result, error) {
 	if limits.MaxFileBytes <= 0 {
 		limits.MaxFileBytes = DefaultLimits.MaxFileBytes
 	}
-	perFileBudget := limits.MaxFileBytes
-	if perFileBudget > limits.MaxTotalBytes {
-		perFileBudget = limits.MaxTotalBytes
+	if limits.MaxDepth <= 0 {
+		limits.MaxDepth = DefaultLimits.MaxDepth
 	}
+	if limits.MaxEntries <= 0 {
+		limits.MaxEntries = DefaultLimits.MaxEntries
+	}
+	return limits
+}
 
-	entries, err := os.ReadDir(abs)
+func relPath(root, path string) string {
+	rel, err := filepath.Rel(root, path)
 	if err != nil {
-		return nil, fmt.Errorf("无法读取目录: %w", err)
+		return filepath.ToSlash(path)
 	}
+	return filepath.ToSlash(rel)
+}
 
-	result := &Result{}
-	var total int64
-	for _, entry := range entries {
-		if entry.IsDir() {
+func naturalPathLess(a, b string) bool {
+	as := strings.Split(a, "/")
+	bs := strings.Split(b, "/")
+	for i := 0; i < len(as) && i < len(bs); i++ {
+		if as[i] == bs[i] {
 			continue
 		}
-		ext := strings.ToLower(filepath.Ext(entry.Name()))
-		if ext != ".md" && ext != ".markdown" {
-			continue
-		}
-		info, err := entry.Info()
-		if err != nil {
-			result.Warnings = append(result.Warnings, "无法读取文件信息："+entry.Name())
-			continue
-		}
-		if len(result.Documents) >= limits.MaxDocs {
-			result.Truncated = true
-			break
-		}
-		if info.Size() > perFileBudget {
-			result.Skipped = append(result.Skipped, SkippedDocument{
-				Path: filepath.Join(abs, entry.Name()),
-				Name: entry.Name(),
-				Size: info.Size(),
-			})
-			result.Warnings = append(result.Warnings, fmt.Sprintf(
-				"文件过大，已跳过：%s（%s）", entry.Name(), formatSize(info.Size()),
-			))
-			continue
-		}
-		if total+info.Size() > limits.MaxTotalBytes {
-			result.Truncated = true
-			break
-		}
-		total += info.Size()
-		result.Documents = append(result.Documents, Document{
-			Path: filepath.Join(abs, entry.Name()),
-			Name: entry.Name(),
-			Size: info.Size(),
-		})
+		return naturalLess(as[i], bs[i])
 	}
+	return len(as) < len(bs)
+}
 
-	if len(result.Documents) == 0 {
-		if len(result.Skipped) > 0 {
-			return nil, ErrNoLoadableMarkdown
-		}
-		return nil, ErrNoMarkdown
-	}
-	sort.SliceStable(result.Documents, func(i, j int) bool {
-		return naturalLess(result.Documents[i].Name, result.Documents[j].Name)
-	})
-	return result, nil
+// NaturalLess reports whether a sorts before b using the project's natural order.
+func NaturalLess(a, b string) bool {
+	return naturalLess(a, b)
 }
 
 func naturalLess(a, b string) bool {

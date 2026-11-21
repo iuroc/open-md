@@ -2,7 +2,8 @@
   "use strict";
 
   var sections = Array.prototype.slice.call(document.querySelectorAll(".doc-section"));
-  var docButtons = Array.prototype.slice.call(document.querySelectorAll(".doc-item"));
+  var docButtons = Array.prototype.slice.call(document.querySelectorAll("[data-doc-target]"));
+  var treeToggles = Array.prototype.slice.call(document.querySelectorAll("[data-tree-folder]"));
   var tabButtons = Array.prototype.slice.call(document.querySelectorAll(".sidebar-tab"));
   var tabPanels = Array.prototype.slice.call(document.querySelectorAll(".tab-panel"));
   var toc = document.getElementById("toc");
@@ -390,11 +391,17 @@
       sections[j].hidden = sections[j] !== section;
     }
     for (var k = 0; k < docButtons.length; k++) {
-      docButtons[k].classList.toggle(
-        "active",
-        docButtons[k].getAttribute("data-doc-target") === section.getAttribute("data-doc-id")
-      );
+      var isActive = docButtons[k].getAttribute("data-doc-target") === section.getAttribute("data-doc-id");
+      docButtons[k].classList.toggle("active", isActive);
+      if (docButtons[k].classList.contains("tree-file-button")) {
+        if (isActive) {
+          docButtons[k].setAttribute("aria-current", "true");
+        } else {
+          docButtons[k].removeAttribute("aria-current");
+        }
+      }
     }
+    revealTreeTarget(section.getAttribute("data-doc-id"));
 
     var docTitle = section.getAttribute("data-title") || "OpenMD";
     if (titleEl) {
@@ -438,6 +445,49 @@
     if (section) {
       showDoc(section.getAttribute("data-doc-id"), null, false);
     }
+  }
+
+  function revealTreeTarget(docID) {
+    var target = null;
+    for (var i = 0; i < docButtons.length; i++) {
+      if (
+        docButtons[i].getAttribute("data-doc-target") === docID &&
+        docButtons[i].classList.contains("tree-file-button")
+      ) {
+        target = docButtons[i];
+        break;
+      }
+    }
+    if (!target) {
+      return;
+    }
+    var node = target.parentElement;
+    while (node && node.classList) {
+      if (node.classList.contains("tree-children")) {
+        node.hidden = false;
+        var folder = node.parentElement;
+        var toggle = folder ? folder.querySelector(".tree-toggle") : null;
+        if (toggle) {
+          toggle.setAttribute("aria-expanded", "true");
+        }
+      }
+      node = node.parentElement;
+    }
+    if (target.scrollIntoView) {
+      target.scrollIntoView({ block: "nearest" });
+    }
+  }
+
+  for (var i = 0; i < treeToggles.length; i++) {
+    treeToggles[i].addEventListener("click", function () {
+      var expanded = this.getAttribute("aria-expanded") === "true";
+      this.setAttribute("aria-expanded", expanded ? "false" : "true");
+      var folder = this.parentElement;
+      var children = folder ? folder.querySelector(".tree-children") : null;
+      if (children) {
+        children.hidden = expanded;
+      }
+    });
   }
 
   for (var i = 0; i < docButtons.length; i++) {

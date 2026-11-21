@@ -338,6 +338,78 @@ func TestRenderPageDirectoryUsesSidebarTabs(t *testing.T) {
 	}
 }
 
+func TestRenderPageDirectoryRendersFileTree(t *testing.T) {
+	docs := []Document{
+		{ID: "doc-0", Title: "Root", RelPath: "README.md", HTML: template.HTML("<p>root</p>")},
+		{ID: "doc-1", Title: "Spec Delta", RelPath: "specs/source-view/spec.md", HTML: template.HTML("<p>spec</p>")},
+	}
+	page := &Page{
+		Mode:      "dir",
+		Title:     "docs",
+		Active:    1,
+		Documents: docs,
+	}
+	page.Tree = buildTree(docs, "doc-1")
+	out, err := RenderPage(page)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(out)
+	for _, want := range []string{
+		`class="doc-tree"`,
+		`class="tree-root"`,
+		`data-tree-folder`,
+		`aria-expanded="true"`,
+		`aria-expanded="false"`,
+		`class="tree-label">specs</span>`,
+		`class="tree-label">spec.md</span>`,
+		`title="Spec Delta — specs/source-view/spec.md"`,
+		`class="tree-file-button active"`,
+		`aria-current="true"`,
+	} {
+		if !strings.Contains(s, want) {
+			t.Fatalf("missing %q in tree markup", want)
+		}
+	}
+	if strings.Contains(s, `class="tree-label">Spec Delta</span>`) {
+		t.Fatal("file node must use basename as its label")
+	}
+}
+
+func TestReaderCSSRendersFileTree(t *testing.T) {
+	if !strings.Contains(readerCSS, "padding-left: 24px;") {
+		t.Fatal("tree file rule missing left padding")
+	}
+	label := readerCSSRule(t, ".tree-label {")
+	for _, want := range []string{"overflow: hidden;", "text-overflow: ellipsis;", "white-space: nowrap;"} {
+		if !strings.Contains(label, want) {
+			t.Fatalf("tree label rule missing %q: %s", want, label)
+		}
+	}
+	hidden := readerCSSRule(t, ".tree-children[hidden] {")
+	if !strings.Contains(hidden, "display: none") {
+		t.Fatalf("collapsed tree children must be hidden: %s", hidden)
+	}
+	active := readerCSSRule(t, ".tree-file-button.active {")
+	if !strings.Contains(active, "background: var(--accent);") {
+		t.Fatalf("active tree file must be highlighted: %s", active)
+	}
+}
+
+func TestReaderJSWiresFileTree(t *testing.T) {
+	for _, want := range []string{
+		`document.querySelectorAll("[data-doc-target]")`,
+		`document.querySelectorAll("[data-tree-folder]")`,
+		"revealTreeTarget",
+		`aria-expanded`,
+		`.tree-children`,
+	} {
+		if !strings.Contains(readerJS, want) {
+			t.Fatalf("reader.js missing %q", want)
+		}
+	}
+}
+
 func TestReaderCSSSourceHasNoOuterCard(t *testing.T) {
 	rule := readerCSSRule(t, ".doc-section .source-code.chroma {")
 	for _, want := range []string{
