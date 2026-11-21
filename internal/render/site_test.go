@@ -33,14 +33,12 @@ func buildSite(t *testing.T, dir, cache string) *Site {
 	return site
 }
 
-func TestReaderCSSEnablesViewTransitions(t *testing.T) {
-	for _, want := range []string{
-		"@view-transition",
-		"navigation: auto;",
-	} {
-		if !strings.Contains(readerCSS, want) {
-			t.Fatalf("reader.css missing %q", want)
-		}
+func TestDocPageEnablesViewTransitionsInline(t *testing.T) {
+	if !strings.Contains(docPageTemplateSource, "@view-transition { navigation: auto; }") {
+		t.Fatal("doc page must opt into view transitions inline")
+	}
+	if strings.Contains(readerCSS, "@view-transition") {
+		t.Fatal("view transition opt-in must stay inline, not in an external stylesheet")
 	}
 }
 

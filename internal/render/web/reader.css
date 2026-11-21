@@ -1086,10 +1086,6 @@ body.source-mode .doc-section .source-view {
   }
 }
 
-@view-transition {
-  navigation: auto;
-}
-
 @media print {
   #sidebar,
   .topbar,
