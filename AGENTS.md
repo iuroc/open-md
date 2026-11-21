@@ -42,13 +42,13 @@ GitHub Actions 工作流见 `.github/workflows/build.yml`：
 - push `v*` 标签：测试通过后构建并创建 GitHub Release，附加 `OpenMD.exe` 和 `OpenMD.exe.sha256`，同时上传 workflow artifact。
 - 也可以在 Actions 页面手动触发构建（workflow_dispatch），产物作为 workflow artifact 保留 14 天。
 
-版本号规则：tag 构建去掉前缀 `v` 作为版本号；手动触发的构建使用 `yyyy.MM.dd-<run_number>`。`build.bat` 会识别外部传入的 `BUILD_VERSION`、`BUILD_TIME`；设置 `CI=true` 时跳过 `source.git.bundle` 和 `pause`，设置 `OPENMD_SKIP_TESTS=true` 时跳过测试（CI 中测试已由前一个 job 完成）。
+版本号规则：tag 构建去掉前缀 `v` 作为版本号；手动触发的构建使用 `yyyy.MM.dd-<run_number>`。后续正式版本统一使用 `v1.x.x` 语义化版本，tag 仍以 `v` 开头。`build.bat` 会识别外部传入的 `BUILD_VERSION`、`BUILD_TIME`；设置 `CI=true` 时跳过 `source.git.bundle` 和 `pause`，设置 `OPENMD_SKIP_TESTS=true` 时跳过测试（CI 中测试已由前一个 job 完成）。
 
 发布正式版本：
 
 ```bash
-git tag v2026.11.22
-git push origin v2026.11.22
+git tag v1.0.0
+git push origin v1.0.0
 ```
 
 私有仓库的 Actions 和 Release 附件都需要有权限的账号访问；Windows runner 按 2 倍分钟计费。
