@@ -160,4 +160,13 @@ go vet ./...
 
 测试不会修改真实的 Markdown 关联；注册表测试只使用 `HKCU\Software\OpenMDTest-<随机>` 临时键并自动清理。
 
+生成人工验收案例：
+
+```bash
+go run ./tools/cases        # 轻量案例，输出到 ./cases
+go run ./tools/cases -big   # 追加大小上限用例（约 100 MB）
+```
+
+`cases/` 不提交进仓库，可随时整目录删除。验收步骤见生成后的 `cases/CHECKLIST.md`。
+
 正文样式使用 [github-markdown-css](https://github.com/sindresorhus/github-markdown-css)（MIT），许可声明见 `THIRD_PARTY_NOTICES.md`。

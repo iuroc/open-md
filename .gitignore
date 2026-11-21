@@ -1,2 +1,3 @@
 *.exe
 source.git.bundle
+/cases/
