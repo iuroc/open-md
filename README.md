@@ -76,13 +76,13 @@ git push origin v2026.11.18
 ## 安装
 
 1. 双击 `OpenMD.exe`（放在 Downloads 等任意可执行目录都可以）。
-2. 在系统对话框里选择“是”：安装 / 更新。
-3. 程序会把自己复制到：
+2. 程序会直接安装到：
 
 ```text
 %LOCALAPPDATA%\Programs\OpenMD\OpenMD.exe
 ```
 
+3. 安装完成后弹出一个对话框；选择“完成”即可，需要卸载时在同一对话框选择“卸载”。
 4. 下载目录里的原 exe 之后可以删除，右键菜单仍然可用。
 
 不会修改 `.md` 的默认打开方式，只把它加入“打开方式”列表和右键菜单。
@@ -134,7 +134,7 @@ git push origin v2026.11.18
 
 ## 卸载
 
-双击任意 `OpenMD.exe`，在对话框里选择“否”：卸载。
+双击安装目录里的 `OpenMD.exe`，在对话框里选择“卸载”。
 
 也可以执行：
 
@@ -156,6 +156,7 @@ OpenMD.exe --uninstall
 - 本地图片使用绝对路径。Chrome / Edge 正常；Firefox 的 `file://` 同源策略可能拦截跨目录图片。
 - 远程 `http(s)` 图片保持原地址，离线时可能不显示。
 - exe 未做代码签名，首次运行可能触发 SmartScreen 提示。
+- 安装与错误对话框使用 Windows 原生 TaskDialog，不跟随阅读页配色和深色模式。
 - 不做 PDF 导出、数学公式、Mermaid、文件监听或实时预览。
 
 ## 图标
@@ -163,7 +164,8 @@ OpenMD.exe --uninstall
 - 图标源文件：`assets/openmd.ico`（白底、青色描边和 M 标记）
 - 网页 favicon：`internal/render/web/favicon.png`，由同一个生成器输出并以内嵌 data URI 写入页面
 - 重新生成：`go run ./tools/icon`
-- 嵌入 exe：`rsrc -ico assets/openmd.ico -o rsrc_windows_amd64.syso`
+- 嵌入 exe：`rsrc -ico assets/openmd.ico -manifest assets/app.manifest -o rsrc_windows_amd64.syso`
+- `assets/app.manifest` 提供 Common Controls v6、`asInvoker` 和 PerMonitorV2 DPI；修改后需重新生成 `.syso`
 - 已提交的 `rsrc_windows_amd64.syso` 会被 `go build` 自动使用，日常构建不需要再安装 `rsrc`
 
 ## 开发
