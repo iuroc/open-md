@@ -28,6 +28,7 @@
 <title>{{.Title}} - OpenMD</title>
 <script>
 (function () {
+  document.documentElement.classList.add("openmd-booting");
   try {
     var theme = localStorage.getItem("openmd-theme");
     if (theme === "blue" || theme === "teal" || theme === "violet" || theme === "graphite") {
@@ -40,6 +41,10 @@
       document.documentElement.classList.add("openmd-hash-load");
     }
   } catch (err) {}
+
+  window.setTimeout(function () {
+    document.documentElement.classList.add("openmd-ready");
+  }, 1500);
 
   function cancelOnInteraction(event) {
     var viewTransition = event.viewTransition;
@@ -61,6 +66,11 @@
   @view-transition { navigation: auto; }
   ::view-transition { pointer-events: none; }
   html.openmd-hash-load #doc-content { visibility: hidden; }
+  html.openmd-booting body { opacity: 0; }
+  html.openmd-booting.openmd-ready body { opacity: 1; transition: opacity 180ms ease; }
+  @media (prefers-reduced-motion: reduce) {
+    html.openmd-booting.openmd-ready body { transition: none; }
+  }
   html { background: #fbfdff; }
   html[data-theme="teal"] { background: #ffffff; }
   html[data-theme="violet"] { background: #fcfbff; }

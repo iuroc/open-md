@@ -56,6 +56,8 @@ func TestDocPagePreloadsOwnPayload(t *testing.T) {
 		`<script src="{{.Payload}}"></script>`,
 		"window.OPENMD_PAGES",
 		"openmd-hash-load",
+		"openmd-booting",
+		"openmd-ready",
 	} {
 		if !strings.Contains(docPageTemplateSource, want) {
 			t.Fatalf("doc page missing %q", want)

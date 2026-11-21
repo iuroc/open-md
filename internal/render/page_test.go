@@ -401,8 +401,8 @@ func TestReaderJSSupportsSoftDocumentNavigation(t *testing.T) {
 		"sectionHTML",
 		"ownFile",
 		`querySelector("#doc-content .doc-section")`,
-		"doc-fading",
-		"prefersReducedMotion",
+		"revealPage",
+		"openmd-ready",
 		"openmd-hash-load",
 		"loadSoftPage",
 		"navGeneration",
@@ -418,13 +418,16 @@ func TestReaderJSSupportsSoftDocumentNavigation(t *testing.T) {
 	}
 }
 
-func TestReaderCSSFadesDocumentContent(t *testing.T) {
-	rule := readerCSSRule(t, "#doc-content.doc-fading {")
-	if !strings.Contains(rule, "opacity: 0;") {
-		t.Fatalf("faded content rule missing: %s", rule)
-	}
-	if !strings.Contains(readerCSS, "transition: opacity 140ms ease;") {
-		t.Fatal("document content must fade")
+func TestDocPageFadesInOnBoot(t *testing.T) {
+	for _, want := range []string{
+		"html.openmd-booting body { opacity: 0; }",
+		"html.openmd-booting.openmd-ready body { opacity: 1; transition: opacity 180ms ease; }",
+		"openmd-booting",
+		"openmd-ready",
+	} {
+		if !strings.Contains(docPageTemplateSource, want) {
+			t.Fatalf("doc page missing %q", want)
+		}
 	}
 	hidden := readerCSSRule(t, "html.openmd-hash-load #doc-content {")
 	if !strings.Contains(hidden, "visibility: hidden;") {

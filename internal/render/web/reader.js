@@ -39,11 +39,6 @@
   var validThemes = ["blue", "teal", "violet", "graphite"];
   var themeQuery = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
   var mobileQuery = window.matchMedia ? window.matchMedia("(max-width: 900px)") : null;
-  var reduceMotionQuery = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
-
-  function prefersReducedMotion() {
-    return !!(reduceMotionQuery && reduceMotionQuery.matches);
-  }
   var activeHeadings = [];
 
   function applyChromaTheme() {
@@ -702,6 +697,7 @@
     var section = document.querySelector("#doc-content .doc-section");
     if (section) {
       showDoc(section.getAttribute("data-doc-id"), anchor, false);
+      revealPage();
       return;
     }
     generation = ++navGeneration;
@@ -752,7 +748,6 @@
   }
 
   var navGeneration = 0;
-  var fadeTimer = null;
   var initialFile = "";
   var initialPageAnchor = "";
   var initialTreePath = "";
@@ -837,6 +832,10 @@
     }
   }
 
+  function revealPage() {
+    document.documentElement.classList.add("openmd-ready");
+  }
+
   function replaceSections(page, anchor) {
     var content = document.getElementById("doc-content");
     if (!page || !page.sectionHTML || !content) {
@@ -846,6 +845,7 @@
     sections = Array.prototype.slice.call(document.querySelectorAll(".doc-section"));
     showDoc("doc", anchor, false);
     document.documentElement.classList.remove("openmd-hash-load");
+    revealPage();
     return true;
   }
 
@@ -857,6 +857,7 @@
       var content = document.getElementById("doc-content");
       if (content) {
         content.innerHTML = '<p class="read-error">无法加载文档内容</p>';
+        revealPage();
       }
       return;
     }
@@ -873,37 +874,11 @@
       if (generation !== navGeneration) {
         return;
       }
-      var content = document.getElementById("doc-content");
-      if (!page || !page.sectionHTML || !content) {
+      if (!replaceSections(page, anchor)) {
         fallback(file, anchor);
         return;
       }
-      var finish = function () {
-        if (generation !== navGeneration) {
-          return;
-        }
-        if (!replaceSections(page, anchor)) {
-          content.classList.remove("doc-fading");
-          fallback(file, anchor);
-          return;
-        }
-        setActiveTree(treePath);
-        void content.offsetWidth;
-        content.classList.remove("doc-fading");
-      };
-      var pendingHash = document.documentElement.classList.contains("openmd-hash-load");
-      if (prefersReducedMotion()) {
-        finish();
-        return;
-      }
-      clearTimeout(fadeTimer);
-      fadeTimer = null;
-      content.classList.add("doc-fading");
-      if (pendingHash || !content.querySelector(".doc-section")) {
-        finish();
-        return;
-      }
-      fadeTimer = setTimeout(finish, 140);
+      setActiveTree(treePath);
     };
     if (pages[payload]) {
       apply(pages[payload]);
