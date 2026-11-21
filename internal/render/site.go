@@ -535,6 +535,7 @@ func renderOneDoc(cacheDir, mode, rootKey string, doc *siteDoc, knownDocs map[st
 		Mode:          mode,
 		RootKey:       rootKey,
 		Href:          doc.Href,
+		Payload:       docPayloadHref(doc.Href),
 		HasFilesPanel: hasFilesPanel,
 		Doc:           document,
 	}

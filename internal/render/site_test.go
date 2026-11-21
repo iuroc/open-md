@@ -50,6 +50,18 @@ func TestDocPageEnablesViewTransitionsInline(t *testing.T) {
 	}
 }
 
+func TestDocPagePreloadsOwnPayload(t *testing.T) {
+	for _, want := range []string{
+		`data-own-payload="{{.Payload}}"`,
+		`<script src="{{.Payload}}"></script>`,
+		"window.OPENMD_PAGES",
+	} {
+		if !strings.Contains(docPageTemplateSource, want) {
+			t.Fatalf("doc page missing %q", want)
+		}
+	}
+}
+
 func TestBuildDirSiteCreatesIndependentPages(t *testing.T) {
 	dir := t.TempDir()
 	cache := t.TempDir()
@@ -85,6 +97,16 @@ func TestBuildDirSiteCreatesIndependentPages(t *testing.T) {
 	}
 	if !strings.Contains(string(page), `data-doc-href="`) {
 		t.Fatal("thin document shell missing payload href")
+	}
+	payloadName := strings.TrimSuffix(filepath.Base(site.InitialPage), ".html") + ".js"
+	if !strings.Contains(string(page), `data-own-payload="`+payloadName+`"`) {
+		t.Fatal("thin document shell missing own payload")
+	}
+	if !strings.Contains(string(page), `<script src="`+payloadName+`"></script>`) {
+		t.Fatal("own payload must load synchronously")
+	}
+	if !strings.Contains(string(page), "window.OPENMD_PAGES") {
+		t.Fatal("inline section bootstrap missing")
 	}
 	payload, err := os.ReadFile(strings.TrimSuffix(site.InitialPage, ".html") + ".js")
 	if err != nil {

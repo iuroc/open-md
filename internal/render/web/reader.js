@@ -39,11 +39,6 @@
   var validThemes = ["blue", "teal", "violet", "graphite"];
   var themeQuery = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
   var mobileQuery = window.matchMedia ? window.matchMedia("(max-width: 900px)") : null;
-  var reduceMotionQuery = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
-
-  function prefersReducedMotion() {
-    return !!(reduceMotionQuery && reduceMotionQuery.matches);
-  }
   var activeHeadings = [];
 
   function applyChromaTheme() {
@@ -692,12 +687,19 @@
     initialTreePath = activePath;
     initTree();
     restoreSourceMode();
-    var generation = ++navGeneration;
+    var generation;
     if (docHash) {
+      generation = ++navGeneration;
       loadSoftPage(docHash.file, docHash.anchor, treePathForFile(docHash.file), generation);
-    } else {
-      loadSoftPage(initialFile, anchor, initialTreePath, generation);
+      return;
     }
+    var section = document.querySelector("#doc-content .doc-section");
+    if (section) {
+      showDoc(section.getAttribute("data-doc-id"), anchor, false);
+      return;
+    }
+    generation = ++navGeneration;
+    loadSoftPage(initialFile, anchor, initialTreePath, generation);
   }
 
   for (var i = 0; i < docButtons.length; i++) {
@@ -744,7 +746,6 @@
   }
 
   var navGeneration = 0;
-  var fadeTimer = null;
   var initialFile = "";
   var initialPageAnchor = "";
   var initialTreePath = "";
@@ -863,37 +864,11 @@
       if (generation !== navGeneration) {
         return;
       }
-      var content = document.getElementById("doc-content");
-      if (!page || !page.sectionHTML || !content) {
+      if (!replaceSections(page, anchor)) {
         fallback(file, anchor);
         return;
       }
-      var finish = function () {
-        if (generation !== navGeneration) {
-          return;
-        }
-        if (!replaceSections(page, anchor)) {
-          content.classList.remove("doc-fading");
-          fallback(file, anchor);
-          return;
-        }
-        setActiveTree(treePath);
-        void content.offsetWidth;
-        content.classList.remove("doc-fading");
-      };
-      if (prefersReducedMotion()) {
-        finish();
-        return;
-      }
-      clearTimeout(fadeTimer);
-      fadeTimer = null;
-      var alreadyFading = content.classList.contains("doc-fading");
-      content.classList.add("doc-fading");
-      if (alreadyFading || !content.querySelector(".doc-section")) {
-        finish();
-        return;
-      }
-      fadeTimer = setTimeout(finish, 140);
+      setActiveTree(treePath);
     };
     if (pages[payload]) {
       apply(pages[payload]);

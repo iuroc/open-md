@@ -19,6 +19,7 @@ type DocPageData struct {
 	Mode             string
 	RootKey          string
 	Href             string
+	Payload          string
 	HasFilesPanel    bool
 	Doc              Document
 	VersionLabel     string

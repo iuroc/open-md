@@ -68,8 +68,9 @@
 <link rel="stylesheet" href="github-markdown.css">
 <link rel="stylesheet" href="chroma.css">
 <link rel="stylesheet" href="reader.css">
+<script src="{{.Payload}}"></script>
 </head>
-<body data-doc-page="true" data-mode="{{.Mode}}" data-root-key="{{.RootKey}}" data-active-path="{{.Doc.RelPath}}" data-doc-href="{{.Href}}" data-has-files-panel="{{if .HasFilesPanel}}true{{else}}false{{end}}">
+<body data-doc-page="true" data-mode="{{.Mode}}" data-root-key="{{.RootKey}}" data-active-path="{{.Doc.RelPath}}" data-doc-href="{{.Href}}" data-own-payload="{{.Payload}}" data-has-files-panel="{{if .HasFilesPanel}}true{{else}}false{{end}}">
 <div class="app">
   <aside id="sidebar" aria-label="阅读导航">
     <div class="sidebar-header">
@@ -188,6 +189,18 @@
     </header>
 
     <div id="doc-content"></div>
+    <script>
+    (function () {
+      if ((window.location.hash || "").indexOf("#openmd=") === 0) {
+        return;
+      }
+      var key = document.body.getAttribute("data-own-payload") || "";
+      var page = key && window.OPENMD_PAGES ? window.OPENMD_PAGES[key] : null;
+      if (page && page.sectionHTML) {
+        document.getElementById("doc-content").innerHTML = page.sectionHTML;
+      }
+    })();
+    </script>
   </main>
 </div>
 <script src="tree.js"></script>
