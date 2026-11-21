@@ -476,6 +476,8 @@ func TestReaderJSSupportsSplitView(t *testing.T) {
 		"syncPanes",
 		"renderedPane",
 		"sourcePane",
+		`section.querySelector(".source-view")`,
+		`target.classList.contains("source-view")`,
 		"elementRatio",
 		"split-mode",
 		"setElementTop",
@@ -500,14 +502,26 @@ func TestReaderCSSSupportsSplitView(t *testing.T) {
 	}
 	source := readerCSSRule(t, "body.split-mode .doc-section .source-view {")
 	for _, want := range []string{
-		"display: flex;",
+		"display: block;",
 		"grid-column: 1;",
 		"grid-row: 1;",
-		"overflow: hidden;",
+		"overflow-y: auto;",
+		"border-right: 1px solid var(--border);",
 	} {
 		if !strings.Contains(source, want) {
 			t.Fatalf("split source rule missing %q: %s", want, source)
 		}
+	}
+	for _, banned := range []string{"background: var(--bg-subtle);", "border-bottom"} {
+		if strings.Contains(source, banned) {
+			t.Fatalf("split source pane must not look like a shell, found %q: %s", banned, source)
+		}
+	}
+	if strings.Contains(readerCSS, "body.split-mode .doc-section .source-toolbar {") {
+		t.Fatal("split source toolbar must keep the standalone source view styling")
+	}
+	if strings.Contains(readerCSS, "body.split-mode .doc-section .source-code.chroma {") {
+		t.Fatal("split source code must keep the standalone source view typography")
 	}
 	rendered := readerCSSRule(t, "body.split-mode .doc-section .doc-rendered {")
 	for _, want := range []string{

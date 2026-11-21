@@ -157,7 +157,7 @@
 
   function sourcePane() {
     var section = currentSection();
-    return section ? section.querySelector(".source-code") : null;
+    return section ? section.querySelector(".source-view") : null;
   }
 
   function elementRatio(el) {
@@ -1477,9 +1477,9 @@
       if (consumePendingSync(target)) {
         return;
       }
-      syncPanes(target, section.querySelector(".source-code"));
+      syncPanes(target, section.querySelector(".source-view"));
       updateActiveTOC();
-    } else if (target.classList.contains("source-code")) {
+    } else if (target.classList.contains("source-view")) {
       if (consumePendingSync(target)) {
         return;
       }

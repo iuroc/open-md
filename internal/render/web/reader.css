@@ -1321,39 +1321,16 @@ body.split-mode .doc-section.markdown-body {
 }
 
 body.split-mode .doc-section .source-view {
-  display: flex;
+  display: block;
   grid-column: 1;
   grid-row: 1;
-  flex-direction: column;
   min-width: 0;
   min-height: 0;
-  overflow: hidden;
-  border-right: 1px solid var(--border);
-  background: var(--bg-subtle);
-}
-
-body.split-mode .doc-section .source-toolbar {
-  flex: 0 0 auto;
-  margin: 0;
-  padding: 14px 20px 12px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-subtle);
-}
-
-body.split-mode .doc-section .source-code.chroma {
-  flex: 1 1 auto;
-  min-height: 0;
-  padding: 18px 20px 60px;
+  padding: 26px max(clamp(24px, 3vw, 48px), calc((100% - 920px) / 2)) 80px;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  font-size: 0.9rem;
-  line-height: 1.55;
-}
-
-body.split-mode .doc-section .source-empty {
-  margin: 0;
-  padding: 18px 20px;
+  border-right: 1px solid var(--border);
 }
 
 body.split-mode .doc-section .doc-rendered {
@@ -1361,7 +1338,7 @@ body.split-mode .doc-section .doc-rendered {
   grid-row: 1;
   min-width: 0;
   min-height: 0;
-  padding: 26px clamp(24px, 3vw, 48px) 80px;
+  padding: 26px max(clamp(24px, 3vw, 48px), calc((100% - 920px) / 2)) 80px;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
