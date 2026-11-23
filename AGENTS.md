@@ -7,16 +7,10 @@ README 面向产品使用者，只放功能介绍和使用方式；构建、发�
 ### 每次完成修改后
 
 1. 先在当前分支提交所有已完成的改动，写清提交信息。除非明确要求，不要 push，也不要改写到已有提交。
-2. 提交后再执行 `build.bat`，确保测试、`OpenMD.exe` 和 `source.git.bundle` 都是最新的。先提交再 build，bundle 才会包含最新提交。
-3. `build.bat` 末尾有 `pause`，自动化调用时使用非交互方式：
-
-   ```bash
-   printf '\n' | cmd.exe //c build.bat
-   ```
-
-4. `OpenMD.exe` 和 `source.git.bundle` 已被 `.gitignore` 忽略，不要提交构建产物。
-5. 如果测试或构建失败，先修复、重新提交，再报告完成；不要带着失败结果收尾。
-6. 没有完成提交和构建时，不要把工作描述为已完成。
+2. 提交后执行 `go test ./...`，确保测试通过。
+3. 正式构建和发布由 `.github/workflows/build.yml` 完成，本地不需要构建发布包。
+4. 如果测试或构建失败，先修复、重新提交，再报告完成；不要带着失败结果收尾。
+5. 没有完成提交和构建时，不要把工作描述为已完成。
 
 ## 构建
 
@@ -27,11 +21,7 @@ go test ./...
 go build -trimpath -ldflags "-s -w -H=windowsgui" -o OpenMD.exe .
 ```
 
-也可以直接双击 `build.bat`：自动运行测试、注入版本号和构建时间、构建 `OpenMD.exe`，并生成 `source.git.bundle`。
-
-只想要源码包时，双击 `bundle.bat` 即可。
-
-产物是单个 `OpenMD.exe`。手动执行上面的 `go build` 时页面会显示“开发版”；用 `build.bat` 构建才会写入正式版本号和构建时间。
+产物是单个 `OpenMD.exe`。手动执行 `go build` 时页面会显示“开发版”；正式版本号和构建时间由 workflow 注入。
 
 ## 持续集成与发布
 
@@ -42,7 +32,7 @@ GitHub Actions 工作流见 `.github/workflows/build.yml`：
 - push `v*` 标签：测试通过后构建并创建 GitHub Release，附加 `OpenMD.exe` 和 `OpenMD.exe.sha256`，同时上传 workflow artifact。
 - 也可以在 Actions 页面手动触发构建（workflow_dispatch），产物作为 workflow artifact 保留 14 天。
 
-版本号规则：tag 构建去掉前缀 `v` 作为版本号；手动触发的构建使用 `yyyy.MM.dd-<run_number>`。后续正式版本统一使用 `v1.x.x` 语义化版本，tag 仍以 `v` 开头。`build.bat` 会识别外部传入的 `BUILD_VERSION`、`BUILD_TIME`；设置 `CI=true` 时跳过 `source.git.bundle` 和 `pause`，设置 `OPENMD_SKIP_TESTS=true` 时跳过测试（CI 中测试已由前一个 job 完成）。
+版本号规则：tag 构建去掉前缀 `v` 作为版本号；手动触发的构建使用 `yyyy.MM.dd-<run_number>`。后续正式版本统一使用 `v1.x.x` 语义化版本，tag 仍以 `v` 开头。workflow 通过 `-ldflags -X` 注入 `Version` 和 `BuildTime`。
 
 发布正式版本：
 
