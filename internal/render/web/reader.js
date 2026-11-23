@@ -858,19 +858,22 @@
     initialTreePath = activePath;
     initTree();
     var generation;
+    var restoreOnReload = navigationRestoresScroll();
     if (docHash) {
       generation = ++navGeneration;
-      loadSoftPage(docHash.file, docHash.anchor, treePathForFile(docHash.file), generation);
+      loadSoftPage(docHash.file, docHash.anchor, treePathForFile(docHash.file), generation, restoreOnReload);
       return;
     }
     var section = document.querySelector("#doc-content .doc-section");
     if (section) {
-      showDoc(section.getAttribute("data-doc-id"), anchor, false);
-      finishInitialReveal(!!anchor);
+      var restoreSelf = restoreOnReload && savedBodyScroll(activePath) !== null;
+      initialRestoreLoad = restoreSelf && !!anchor;
+      showDoc(section.getAttribute("data-doc-id"), anchor, false, restoreSelf);
+      finishInitialReveal(!!anchor && !restoreSelf);
       return;
     }
     generation = ++navGeneration;
-    loadSoftPage(initialFile, anchor, initialTreePath, generation);
+    loadSoftPage(initialFile, anchor, initialTreePath, generation, restoreOnReload);
   }
 
   for (var i = 0; i < docButtons.length; i++) {
@@ -918,6 +921,7 @@
 
   var navGeneration = 0;
   var initialScrollRestore = true;
+  var initialRestoreLoad = false;
   var clickHashes = {};
   var initialFile = "";
   var initialPageAnchor = "";
@@ -1024,8 +1028,45 @@
     document.documentElement.classList.add("openmd-ready");
   }
 
+  function bodyScrollKeyFor(path) {
+    return "openmd-scroll:" + rootKey + ":" + path;
+  }
+
   function bodyScrollKey() {
-    return "openmd-scroll:" + rootKey + ":" + activePath;
+    return bodyScrollKeyFor(activePath);
+  }
+
+  function savedBodyScroll(path) {
+    if (!path) {
+      return null;
+    }
+    var stored;
+    try {
+      stored = sessionStorage.getItem(bodyScrollKeyFor(path));
+    } catch (err) {
+      return null;
+    }
+    if (stored === null || stored === "") {
+      return null;
+    }
+    var ratio = parseFloat(stored);
+    if (isNaN(ratio)) {
+      return null;
+    }
+    return Math.max(0, Math.min(1, ratio));
+  }
+
+  function navigationRestoresScroll() {
+    try {
+      var entries = performance.getEntriesByType("navigation");
+      if (!entries || entries.length === 0) {
+        return false;
+      }
+      var type = entries[0].type;
+      return type === "reload" || type === "back_forward";
+    } catch (err) {
+      return false;
+    }
   }
 
   function saveBodyScroll() {
@@ -1038,23 +1079,11 @@
   }
 
   function restoreBodyScroll() {
-    if (!activePath) {
+    var ratio = savedBodyScroll(activePath);
+    if (ratio === null) {
       return;
     }
-    var stored;
-    try {
-      stored = sessionStorage.getItem(bodyScrollKey());
-    } catch (err) {
-      return;
-    }
-    if (stored === null || stored === "") {
-      return;
-    }
-    var ratio = parseFloat(stored);
-    if (isNaN(ratio)) {
-      return;
-    }
-    applyScrollRatio(Math.max(0, Math.min(1, ratio)));
+    applyScrollRatio(ratio);
   }
 
   function finishInitialReveal(skipRestore) {
@@ -1080,7 +1109,7 @@
     sections = Array.prototype.slice.call(document.querySelectorAll(".doc-section"));
     showDoc("doc", anchor, false, preserveScroll);
     document.documentElement.classList.remove("openmd-hash-load");
-    finishInitialReveal(!!anchor);
+    finishInitialReveal(!!anchor && !preserveScroll);
     return true;
   }
 
@@ -1111,7 +1140,11 @@
       if (generation !== navGeneration) {
         return;
       }
-      if (!replaceSections(page, anchor, restoreScroll && !anchor)) {
+      var wasInitialLoad = initialScrollRestore;
+      var targetPath = treePath || page.relPath || activePath;
+      var preserveScroll = !!restoreScroll && (!anchor || savedBodyScroll(targetPath) !== null);
+      initialRestoreLoad = wasInitialLoad && !!anchor && preserveScroll;
+      if (!replaceSections(page, anchor, preserveScroll)) {
         fallback(file, anchor);
         return;
       }
@@ -1120,7 +1153,7 @@
         activePath = page.relPath;
         document.body.setAttribute("data-active-path", activePath);
       }
-      if (restoreScroll && !anchor) {
+      if (restoreScroll && !anchor && !wasInitialLoad) {
         restoreBodyScroll();
       }
     };
@@ -1519,7 +1552,7 @@
   if (initialAnchor) {
     window.addEventListener("load", function () {
       var section = currentSection();
-      if (section) {
+      if (!initialRestoreLoad && section) {
         scrollToAnchor(section, initialAnchor);
       }
     });

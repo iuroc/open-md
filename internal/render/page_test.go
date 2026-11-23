@@ -741,6 +741,20 @@ func TestReaderJSPersistsScrollPositions(t *testing.T) {
 	}
 }
 
+func TestReaderJSRestoresScrollOverAnchorOnReload(t *testing.T) {
+	for _, want := range []string{
+		"function navigationRestoresScroll()",
+		`type === "reload" || type === "back_forward"`,
+		"function savedBodyScroll(path)",
+		"initialRestoreLoad",
+		"!initialRestoreLoad",
+	} {
+		if !strings.Contains(readerJS, want) {
+			t.Fatalf("reader.js missing %q", want)
+		}
+	}
+}
+
 func TestReaderJSClosesMobileSidebarOnNavigation(t *testing.T) {
 	tocStart := strings.Index(readerJS, `toc.addEventListener("click"`)
 	if tocStart < 0 {
