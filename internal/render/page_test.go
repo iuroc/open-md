@@ -1025,21 +1025,34 @@ func TestRenderPageShowsBuildInfoAndReleaseLink(t *testing.T) {
 		t.Fatal(err)
 	}
 	s := html.UnescapeString(string(out))
-	for _, want := range []string{
+
+	authorMeta := `name="author" content="` + buildinfo.AuthorName
+	if buildinfo.AuthorID != "" {
+		authorMeta += "（" + buildinfo.AuthorID + "）"
+	}
+	authorMeta += `"`
+
+	want := []string{
 		`id="settings-panel"`,
-		`name="author" content="github.com/iuroc"`,
-		`href="https://github.com/iuroc"`,
-		"github.com/iuroc",
+		authorMeta,
 		`data-theme="blue"`,
 		`data-theme="teal"`,
 		"v2026.11.18-0959",
 		"2026-11-18 09:59:12 +08:00",
-		"https://github.com/iuroc/open-md/releases",
 		`class="release-link panel-action"`,
 		"晚于当前构建时间",
-	} {
-		if !strings.Contains(s, want) {
-			t.Fatalf("missing %q", want)
+	}
+	if buildinfo.ReleaseURL != "" {
+		want = append(want, buildinfo.ReleaseURL)
+	}
+	if buildinfo.AuthorID != "" {
+		want = append(want, buildinfo.AuthorName+"（"+buildinfo.AuthorID+"）")
+	} else if buildinfo.AuthorURL != "" {
+		want = append(want, `href="`+buildinfo.AuthorURL+`"`)
+	}
+	for _, w := range want {
+		if !strings.Contains(s, w) {
+			t.Fatalf("missing %q", w)
 		}
 	}
 }
@@ -1062,10 +1075,67 @@ func TestRenderPageHidesReleaseLinkForDevBuild(t *testing.T) {
 		t.Fatal(err)
 	}
 	s := string(out)
-	if strings.Contains(s, "github.com/iuroc/open-md") {
+	if buildinfo.ReleaseURL != "" && strings.Contains(s, buildinfo.ReleaseURL) {
 		t.Fatal("dev build must not expose the release URL")
 	}
 	if !strings.Contains(s, "开发版") {
 		t.Fatal("dev build label missing")
+	}
+}
+
+func TestRenderPageShowsAuthorIDInsteadOfLink(t *testing.T) {
+	oldName, oldID, oldURL := buildinfo.AuthorName, buildinfo.AuthorID, buildinfo.AuthorURL
+	defer func() {
+		buildinfo.AuthorName, buildinfo.AuthorID, buildinfo.AuthorURL = oldName, oldID, oldURL
+	}()
+	buildinfo.AuthorName = "内部作者"
+	buildinfo.AuthorID = "12345"
+	buildinfo.AuthorURL = "https://example.invalid/profile"
+
+	page := &Page{
+		Mode:      "file",
+		Title:     "A",
+		Documents: []Document{{ID: "doc-0", Title: "A", HTML: template.HTML("<p>a</p>")}},
+	}
+	out, err := RenderPage(page)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := html.UnescapeString(string(out))
+	if !strings.Contains(s, `name="author" content="内部作者（12345）"`) {
+		t.Fatal("author meta must include the employee ID")
+	}
+	if !strings.Contains(s, "内部作者（12345）") {
+		t.Fatal("author line must include the employee ID")
+	}
+	if strings.Contains(s, `href="https://example.invalid/profile"`) {
+		t.Fatal("author link must not be rendered when an employee ID is set")
+	}
+}
+
+func TestRenderPageShowsPlainAuthorWhenNoIDOrURL(t *testing.T) {
+	oldName, oldID, oldURL := buildinfo.AuthorName, buildinfo.AuthorID, buildinfo.AuthorURL
+	defer func() {
+		buildinfo.AuthorName, buildinfo.AuthorID, buildinfo.AuthorURL = oldName, oldID, oldURL
+	}()
+	buildinfo.AuthorName = "匿名作者"
+	buildinfo.AuthorID = ""
+	buildinfo.AuthorURL = ""
+
+	page := &Page{
+		Mode:      "file",
+		Title:     "A",
+		Documents: []Document{{ID: "doc-0", Title: "A", HTML: template.HTML("<p>a</p>")}},
+	}
+	out, err := RenderPage(page)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := html.UnescapeString(string(out))
+	if !strings.Contains(s, `name="author" content="匿名作者"`) {
+		t.Fatal("author meta must contain the plain author name")
+	}
+	if !strings.Contains(s, "匿名作者") {
+		t.Fatal("author line must contain the plain author name")
 	}
 }

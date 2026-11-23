@@ -24,7 +24,7 @@
 <meta name="color-scheme" content="light dark">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src file: data: https: http:; style-src 'unsafe-inline' file:; script-src 'unsafe-inline' file:; font-src data:; base-uri 'none'; form-action 'none'">
 <link rel="icon" type="image/png" href="{{.Favicon}}">
-<meta name="author" content="{{.AuthorName}}">
+<meta name="author" content="{{.AuthorName}}{{if .AuthorID}}（{{.AuthorID}}）{{end}}">
 <title>{{.Title}} - OpenMD</title>
 <script>
 (function () {
@@ -241,7 +241,7 @@
             </section>
             <section id="settings-panel-about" class="settings-tabpanel" role="tabpanel" aria-labelledby="settings-tab-button-about" data-settings-panel="about" hidden>
               <dl class="about-meta">
-                <div><dt>作者</dt><dd class="author-line"><a href="{{.AuthorURL}}" target="_blank" rel="noopener noreferrer">{{.AuthorName}}</a></dd></div>
+                <div><dt>作者</dt><dd class="author-line">{{if .AuthorID}}{{.AuthorName}}（{{.AuthorID}}）{{else if .AuthorURL}}<a href="{{.AuthorURL}}" target="_blank" rel="noopener noreferrer">{{.AuthorName}}</a>{{else}}{{.AuthorName}}{{end}}</dd></div>
                 <div><dt>版本</dt><dd>{{.VersionLabel}}</dd></div>
                 <div><dt>构建时间</dt><dd>{{.BuildTime}}</dd></div>
               </dl>

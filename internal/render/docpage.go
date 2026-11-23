@@ -26,6 +26,7 @@ type DocPageData struct {
 	VersionLabel     string
 	BuildTime        string
 	AuthorName       string
+	AuthorID         string
 	AuthorURL        string
 	ReleaseAvailable bool
 	ReleaseURL       string
@@ -44,6 +45,9 @@ func prepareDocPageData(data DocPageData) DocPageData {
 	}
 	if data.AuthorName == "" {
 		data.AuthorName = buildinfo.AuthorName
+	}
+	if data.AuthorID == "" {
+		data.AuthorID = buildinfo.AuthorID
 	}
 	if data.AuthorURL == "" {
 		data.AuthorURL = buildinfo.AuthorURL
