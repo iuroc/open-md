@@ -29,6 +29,15 @@ const (
 	siteFullThresholdBytes = 8 << 20
 )
 
+// cacheGeneration invalidates cached pages when templates or shared assets
+// change in ways a version label cannot capture, such as dev builds that all
+// share the 开发版 label.
+const cacheGeneration = "2026-11-23-branding"
+
+func cacheVersion(version string) string {
+	return version + "+" + cacheGeneration
+}
+
 var ErrLoadCancelled = errors.New("用户取消加载")
 
 type LoadChoice int
@@ -133,6 +142,7 @@ func BuildDirSite(dirPath string, opts SiteOptions) (*Site, error) {
 	if opts.Version == "" {
 		opts.Version = "dev"
 	}
+	opts.Version = cacheVersion(opts.Version)
 	rootKey := siteRootKey(abs)
 	cacheDir := filepath.Join(opts.CacheBase, rootKey)
 	if err := os.MkdirAll(cacheDir, 0755); err != nil {
@@ -273,6 +283,7 @@ func BuildFileSite(filePath string, opts SiteOptions) (*Site, error) {
 	if opts.Version == "" {
 		opts.Version = "dev"
 	}
+	opts.Version = cacheVersion(opts.Version)
 	if info.Size() > 32<<20 {
 		choice := LoadAll
 		if opts.Confirm != nil {

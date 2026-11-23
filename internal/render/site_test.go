@@ -343,3 +343,63 @@ func TestBuildFileSiteCreatesLinkedPage(t *testing.T) {
 		t.Fatalf("linked document group missing: %s", treeJS)
 	}
 }
+
+func TestBuildDirSiteRebuildsCacheFromOlderRenderGeneration(t *testing.T) {
+	dir := t.TempDir()
+	cache := t.TempDir()
+	writeSiteFile(t, dir, "README.md", "# Home\n")
+
+	first := buildSite(t, dir, cache)
+	if first.Generated == 0 {
+		t.Fatal("first build should generate pages")
+	}
+
+	abs, err := filepath.Abs(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cacheDir := filepath.Join(cache, siteRootKey(abs))
+	manifest := loadManifest(cacheDir)
+	manifest.Version = "v1" // cache written before the render-generation marker
+	if err := writeManifest(cacheDir, manifest); err != nil {
+		t.Fatal(err)
+	}
+
+	second := buildSite(t, dir, cache)
+	if second.Generated == 0 {
+		t.Fatal("cache from an older render generation must be rebuilt")
+	}
+}
+
+func TestBuildFileSiteRebuildsCacheFromOlderRenderGeneration(t *testing.T) {
+	dir := t.TempDir()
+	cache := t.TempDir()
+	path := writeSiteFile(t, dir, "main.md", "# Main\n")
+
+	first, err := BuildFileSite(path, SiteOptions{CacheBase: cache, Version: "v1", AllowCache: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first.Generated == 0 {
+		t.Fatal("first build should generate pages")
+	}
+
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cacheDir := filepath.Join(cache, siteRootKey(abs))
+	manifest := loadManifest(cacheDir)
+	manifest.Version = "v1" // cache written before the render-generation marker
+	if err := writeManifest(cacheDir, manifest); err != nil {
+		t.Fatal(err)
+	}
+
+	second, err := BuildFileSite(path, SiteOptions{CacheBase: cache, Version: "v1", AllowCache: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if second.Generated == 0 {
+		t.Fatal("cache from an older render generation must be rebuilt")
+	}
+}
