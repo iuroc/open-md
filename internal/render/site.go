@@ -669,7 +669,7 @@ func writeAssets(cacheDir string) error {
 	light, dark := HighlightCSS()
 	assets := map[string]string{
 		"reader.css":          readerCSS,
-		"github-markdown.css": githubMarkdownCSS,
+		"markdown.css":        githubMarkdownCSS,
 		"chroma.css":          light + "\n" + dark,
 		"reader.js":           readerJS,
 	}

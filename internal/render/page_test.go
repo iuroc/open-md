@@ -910,7 +910,7 @@ func TestReaderCSSKeepsTableHeadersOnOneLine(t *testing.T) {
 	}
 }
 
-func TestRenderPageIncludesGithubMarkdownCSS(t *testing.T) {
+func TestRenderPageIncludesMarkdownCSS(t *testing.T) {
 	page := &Page{
 		Mode:      "file",
 		Title:     "A",
@@ -925,7 +925,40 @@ func TestRenderPageIncludesGithubMarkdownCSS(t *testing.T) {
 		t.Fatal("markdown body class missing")
 	}
 	if !strings.Contains(s, `--fgColor-default`) {
-		t.Fatal("github-markdown-css not embedded")
+		t.Fatal("markdown CSS not embedded")
+	}
+}
+
+func TestRenderPageHasNoVendorBrandingText(t *testing.T) {
+	oldVersion, oldBuildTime := buildinfo.Version, buildinfo.BuildTime
+	defer func() {
+		buildinfo.Version, buildinfo.BuildTime = oldVersion, oldBuildTime
+	}()
+	buildinfo.Version = "2026.11.18-0959"
+	buildinfo.BuildTime = "2026-11-18T09:59:12+08:00"
+
+	page := &Page{
+		Mode:      "file",
+		Title:     "A",
+		Documents: []Document{{ID: "doc-0", Title: "A", HTML: template.HTML("<p>a</p>")}},
+	}
+	out, err := RenderPage(page)
+	if err != nil {
+		t.Fatal(err)
+	}
+	docOut, err := RenderDocPage(DocPageData{
+		Title: "A",
+		Doc:   Document{ID: "doc-0", Title: "A", HTML: template.HTML("<p>a</p>")},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, s := range []string{string(out), string(docOut)} {
+		for _, bad := range []string{"github-markdown", "GitHub Releases"} {
+			if strings.Contains(s, bad) {
+				t.Fatalf("rendered page still contains %q", bad)
+			}
+		}
 	}
 }
 

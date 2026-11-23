@@ -89,6 +89,12 @@ func TestBuildDirSiteCreatesIndependentPages(t *testing.T) {
 	if !strings.Contains(string(page), `href="reader.css"`) {
 		t.Fatal("shared reader.css not referenced")
 	}
+	if !strings.Contains(string(page), `href="markdown.css"`) {
+		t.Fatal("shared markdown.css not referenced")
+	}
+	if !fileExists(filepath.Join(filepath.Dir(site.InitialPage), "markdown.css")) {
+		t.Fatal("markdown.css was not written")
+	}
 	if !strings.Contains(string(page), `name="color-scheme" content="light dark"`) {
 		t.Fatal("early color-scheme meta missing")
 	}
