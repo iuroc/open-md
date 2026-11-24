@@ -46,7 +46,21 @@
   var copyStatusTimer = null;
   var copyGeneration = 0;
   var themeButtons = Array.prototype.slice.call(document.querySelectorAll(".theme-option"));
-  var validThemes = ["blue", "teal", "violet", "graphite"];
+  var validThemes = ["blue", "teal", "violet", "graphite", "paper"];
+  var readerFontButtons = Array.prototype.slice.call(document.querySelectorAll("[data-reader-font]"));
+  var readerSpacingButtons = Array.prototype.slice.call(document.querySelectorAll("[data-reader-spacing]"));
+  var readerFonts = {
+    default: "",
+    song: '"SimSun", "宋体", "Songti SC", "Noto Serif CJK SC", serif',
+    kai: '"KaiTi", "楷体", "Kaiti SC", STKaiti, serif',
+    fang: '"FangSong", "仿宋", "FangSong_GB2312", STFangsong, serif'
+  };
+  var readerSpacings = {
+    "0": "0",
+    "0.03": "0.03em",
+    "0.06": "0.06em",
+    "0.1": "0.10em"
+  };
   var themeQuery = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
   var mobileQuery = window.matchMedia ? window.matchMedia("(max-width: 900px)") : null;
   var activeHeadings = [];
@@ -326,6 +340,43 @@
     }
     if (persist) {
       writePref("openmd-theme", theme);
+    }
+  }
+
+  function applyReaderFont(name, persist) {
+    if (!readerFonts.hasOwnProperty(name)) {
+      name = "default";
+    }
+    var stack = readerFonts[name];
+    if (stack) {
+      document.documentElement.style.setProperty("--reader-font", stack);
+    } else {
+      document.documentElement.style.removeProperty("--reader-font");
+    }
+    for (var i = 0; i < readerFontButtons.length; i++) {
+      readerFontButtons[i].setAttribute(
+        "aria-pressed",
+        readerFontButtons[i].getAttribute("data-reader-font") === name ? "true" : "false"
+      );
+    }
+    if (persist) {
+      writePref("openmd-reader-font", name);
+    }
+  }
+
+  function applyReaderSpacing(name, persist) {
+    if (!readerSpacings.hasOwnProperty(name)) {
+      name = "0";
+    }
+    document.documentElement.style.setProperty("--reader-letter-spacing", readerSpacings[name]);
+    for (var i = 0; i < readerSpacingButtons.length; i++) {
+      readerSpacingButtons[i].setAttribute(
+        "aria-pressed",
+        readerSpacingButtons[i].getAttribute("data-reader-spacing") === name ? "true" : "false"
+      );
+    }
+    if (persist) {
+      writePref("openmd-reader-spacing", name);
     }
   }
 
@@ -1439,6 +1490,18 @@
     });
   }
 
+  for (var rf = 0; rf < readerFontButtons.length; rf++) {
+    readerFontButtons[rf].addEventListener("click", function () {
+      applyReaderFont(this.getAttribute("data-reader-font"), true);
+    });
+  }
+
+  for (var rs = 0; rs < readerSpacingButtons.length; rs++) {
+    readerSpacingButtons[rs].addEventListener("click", function () {
+      applyReaderSpacing(this.getAttribute("data-reader-spacing"), true);
+    });
+  }
+
   if (settingsPanel) {
     settingsPanel.addEventListener("click", function (event) {
       var target = event.target;
@@ -1532,6 +1595,8 @@
 
   var storedTheme = readPref("openmd-theme");
   applyTheme(validThemes.indexOf(storedTheme) >= 0 ? storedTheme : currentTheme(), false);
+  applyReaderFont(readPref("openmd-reader-font"), false);
+  applyReaderSpacing(readPref("openmd-reader-spacing"), false);
 
   document.addEventListener("scroll", function (event) {
     if (currentMode() !== "split") {

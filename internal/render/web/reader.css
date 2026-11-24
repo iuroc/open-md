@@ -120,6 +120,34 @@ html[data-theme="graphite"] {
   }
 }
 
+html[data-theme="paper"] {
+  --bg: #f6f0e3;
+  --bg-sidebar: #efe7d6;
+  --bg-subtle: #f1ebdd;
+  --bg-hover: #e7ddc9;
+  --fg: #2f2a23;
+  --fg-muted: #7c705e;
+  --border: #ddd2bd;
+  --accent: #3f5d6b;
+  --accent-fg: #ffffff;
+  --accent-soft: #e4ecef;
+}
+
+@media (prefers-color-scheme: dark) {
+  html[data-theme="paper"] {
+    --bg: #1a1814;
+    --bg-sidebar: #211e18;
+    --bg-subtle: #26221c;
+    --bg-hover: #2e2922;
+    --fg: #e6ddcb;
+    --fg-muted: #a89b85;
+    --border: #3a342a;
+    --accent: #93b3c0;
+    --accent-fg: #10171b;
+    --accent-soft: #24343b;
+  }
+}
+
 * {
   box-sizing: border-box;
 }
@@ -1079,13 +1107,15 @@ a:hover {
   letter-spacing: 0.04em;
 }
 
-.theme-grid {
+.theme-grid,
+.setting-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 6px;
 }
 
-.theme-option {
+.theme-option,
+.setting-option {
   display: flex;
   align-items: center;
   gap: 7px;
@@ -1100,14 +1130,20 @@ a:hover {
   text-align: left;
 }
 
-.theme-option:hover {
+.theme-option:hover,
+.setting-option:hover {
   background: var(--bg-hover);
 }
 
-.theme-option[aria-pressed="true"] {
+.theme-option[aria-pressed="true"],
+.setting-option[aria-pressed="true"] {
   border-color: var(--accent);
   background: var(--accent-soft);
   color: var(--accent);
+}
+
+.theme-option[data-theme="paper"] {
+  grid-column: 1 / -1;
 }
 
 .theme-dot {
@@ -1132,6 +1168,18 @@ a:hover {
 
 .theme-dot-graphite {
   background: #475569;
+}
+
+.theme-dot-paper {
+  background: #f6f0e3;
+  box-shadow: inset 0 0 0 1px #3f5d6b;
+}
+
+@media (prefers-color-scheme: dark) {
+  .theme-dot-paper {
+    background: #1a1814;
+    box-shadow: inset 0 0 0 1px #93b3c0;
+  }
 }
 
 body.full-width .doc-section.markdown-body {
@@ -1190,7 +1238,17 @@ html.openmd-hash-load #doc-content {
   margin: 0 auto;
   padding: 0;
   background: transparent;
+  font-family: var(--reader-font, var(--font-body));
+  letter-spacing: var(--reader-letter-spacing, 0);
   --fgColor-accent: var(--accent);
+}
+
+.doc-section.markdown-body pre,
+.doc-section.markdown-body code,
+.doc-section.markdown-body kbd,
+.doc-section.markdown-body samp {
+  font-family: var(--font-mono);
+  letter-spacing: normal;
 }
 
 .markdown-body table th {

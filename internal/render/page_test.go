@@ -447,6 +447,150 @@ func TestDocPageHidesUntilReady(t *testing.T) {
 	}
 }
 
+func TestPaperThemeStyles(t *testing.T) {
+	light := readerCSSRule(t, `html[data-theme="paper"] {`)
+	for _, want := range []string{
+		"--bg: #f6f0e3;",
+		"--fg: #2f2a23;",
+		"--accent: #3f5d6b;",
+	} {
+		if !strings.Contains(light, want) {
+			t.Fatalf("paper theme missing %q: %s", want, light)
+		}
+	}
+	if !strings.Contains(readerCSS, "--bg: #1a1814;") {
+		t.Fatal("paper dark theme background missing")
+	}
+	dot := readerCSSRule(t, ".theme-dot-paper {")
+	if !strings.Contains(dot, "#f6f0e3") || !strings.Contains(dot, "#3f5d6b") {
+		t.Fatalf("paper theme dot missing: %s", dot)
+	}
+	option := readerCSSRule(t, `.theme-option[data-theme="paper"] {`)
+	if !strings.Contains(option, "grid-column: 1 / -1;") {
+		t.Fatalf("paper theme option must span the grid: %s", option)
+	}
+}
+
+func TestPaperThemeRegistration(t *testing.T) {
+	for name, source := range map[string]string{
+		"docpage.html": docPageTemplateSource,
+		"page.html":    pageTemplateSource,
+	} {
+		for _, want := range []string{
+			`data-theme="paper"`,
+			"宣纸",
+			`theme === "paper"`,
+		} {
+			if !strings.Contains(source, want) {
+				t.Fatalf("%s missing %q", name, want)
+			}
+		}
+	}
+	for _, want := range []string{
+		`html[data-theme="paper"] { background: #f6f0e3; }`,
+		`html[data-theme="paper"] { background: #1a1814; }`,
+	} {
+		if !strings.Contains(docPageTemplateSource, want) {
+			t.Fatalf("docpage.html missing %q", want)
+		}
+	}
+	if !strings.Contains(readerJS, `var validThemes = ["blue", "teal", "violet", "graphite", "paper"];`) {
+		t.Fatal("reader.js validThemes must include paper")
+	}
+}
+
+func TestReaderTypographyCSS(t *testing.T) {
+	body := readerCSSRule(t, "\n.doc-section.markdown-body {")
+	for _, want := range []string{
+		"font-family: var(--reader-font, var(--font-body));",
+		"letter-spacing: var(--reader-letter-spacing, 0);",
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("markdown body missing %q: %s", want, body)
+		}
+	}
+	mono := readerCSSRule(t, ".doc-section.markdown-body pre,")
+	for _, want := range []string{
+		"font-family: var(--font-mono);",
+		"letter-spacing: normal;",
+	} {
+		if !strings.Contains(mono, want) {
+			t.Fatalf("code reset missing %q: %s", want, mono)
+		}
+	}
+}
+
+func TestReaderJSTypographyPresets(t *testing.T) {
+	for _, want := range []string{
+		"var readerFonts = {",
+		`"SimSun"`,
+		`"KaiTi"`,
+		`"FangSong"`,
+		"var readerSpacings = {",
+		`"0.03": "0.03em"`,
+		`"0.06": "0.06em"`,
+		`"0.1": "0.10em"`,
+		"--reader-font",
+		"--reader-letter-spacing",
+		"openmd-reader-font",
+		"openmd-reader-spacing",
+		`applyReaderFont(readPref("openmd-reader-font"), false);`,
+		`applyReaderSpacing(readPref("openmd-reader-spacing"), false);`,
+	} {
+		if !strings.Contains(readerJS, want) {
+			t.Fatalf("reader.js missing %q", want)
+		}
+	}
+}
+
+func TestReaderSettingsGroups(t *testing.T) {
+	wants := []string{
+		`data-reader-font="default"`,
+		`data-reader-font="song"`,
+		`data-reader-font="kai"`,
+		`data-reader-font="fang"`,
+		`data-reader-spacing="0"`,
+		`data-reader-spacing="0.03"`,
+		`data-reader-spacing="0.06"`,
+		`data-reader-spacing="0.1"`,
+		">字体<",
+		">字间距<",
+	}
+	for name, source := range map[string]string{
+		"docpage.html": docPageTemplateSource,
+		"page.html":    pageTemplateSource,
+	} {
+		for _, want := range wants {
+			if !strings.Contains(source, want) {
+				t.Fatalf("%s missing %q", name, want)
+			}
+		}
+	}
+	for _, want := range []string{
+		".setting-grid {",
+		".setting-option {",
+		".setting-option:hover {",
+		`.setting-option[aria-pressed="true"] {`,
+	} {
+		if !strings.Contains(readerCSS, want) {
+			t.Fatalf("reader.css missing %q", want)
+		}
+	}
+}
+
+func TestReaderJSTypographyWiring(t *testing.T) {
+	for _, want := range []string{
+		`querySelectorAll("[data-reader-font]")`,
+		`querySelectorAll("[data-reader-spacing]")`,
+		`applyReaderFont(this.getAttribute("data-reader-font"), true)`,
+		`applyReaderSpacing(this.getAttribute("data-reader-spacing"), true)`,
+	} {
+		if !strings.Contains(readerJS, want) {
+			t.Fatalf("reader.js missing %q", want)
+		}
+	}
+}
+
 func TestReaderJSRestoresViewModeOnReload(t *testing.T) {
 	for _, want := range []string{
 		"modeStorageKey",

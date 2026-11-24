@@ -12,7 +12,7 @@
 (function () {
   try {
     var theme = localStorage.getItem("openmd-theme");
-    if (theme === "blue" || theme === "teal" || theme === "violet" || theme === "graphite") {
+    if (theme === "blue" || theme === "teal" || theme === "violet" || theme === "graphite" || theme === "paper") {
       document.documentElement.setAttribute("data-theme", theme);
     }
   } catch (err) {}
@@ -184,6 +184,25 @@
                   <button type="button" class="theme-option" data-theme="teal" aria-pressed="false"><span class="theme-dot theme-dot-teal"></span>松石</button>
                   <button type="button" class="theme-option" data-theme="violet" aria-pressed="false"><span class="theme-dot theme-dot-violet"></span>紫藤</button>
                   <button type="button" class="theme-option" data-theme="graphite" aria-pressed="false"><span class="theme-dot theme-dot-graphite"></span>石墨</button>
+                  <button type="button" class="theme-option" data-theme="paper" aria-pressed="false"><span class="theme-dot theme-dot-paper"></span>宣纸</button>
+                </div>
+              </div>
+              <div class="settings-group">
+                <div class="settings-label">字体</div>
+                <div class="setting-grid" role="group" aria-label="正文字体">
+                  <button type="button" class="setting-option" data-reader-font="default" aria-pressed="true">默认</button>
+                  <button type="button" class="setting-option" data-reader-font="song" aria-pressed="false">宋体</button>
+                  <button type="button" class="setting-option" data-reader-font="kai" aria-pressed="false">楷体</button>
+                  <button type="button" class="setting-option" data-reader-font="fang" aria-pressed="false">仿宋</button>
+                </div>
+              </div>
+              <div class="settings-group">
+                <div class="settings-label">字间距</div>
+                <div class="setting-grid" role="group" aria-label="字符间距">
+                  <button type="button" class="setting-option" data-reader-spacing="0" aria-pressed="true">标准</button>
+                  <button type="button" class="setting-option" data-reader-spacing="0.03" aria-pressed="false">疏朗</button>
+                  <button type="button" class="setting-option" data-reader-spacing="0.06" aria-pressed="false">舒展</button>
+                  <button type="button" class="setting-option" data-reader-spacing="0.1" aria-pressed="false">宽松</button>
                 </div>
               </div>
             </section>
