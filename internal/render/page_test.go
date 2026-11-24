@@ -773,6 +773,17 @@ func TestReaderJSConsumesAnchorAfterJump(t *testing.T) {
 	}
 }
 
+func TestReaderJSSkipsActiveDocumentNavigation(t *testing.T) {
+	for _, want := range []string{
+		"var sameDoc = !parts.anchor && !!treePath && treePath === activePath;",
+		"if (sameDoc)",
+	} {
+		if !strings.Contains(readerJS, want) {
+			t.Fatalf("reader.js missing %q", want)
+		}
+	}
+}
+
 func TestReaderJSClosesMobileSidebarOnNavigation(t *testing.T) {
 	tocStart := strings.Index(readerJS, `toc.addEventListener("click"`)
 	if tocStart < 0 {

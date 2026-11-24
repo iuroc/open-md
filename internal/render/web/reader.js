@@ -1272,7 +1272,11 @@
     saveBodyScroll();
     var parts = splitDocHref(href);
     var treePath = link.getAttribute("data-tree-path") || treePathForFile(parts.file);
+    var sameDoc = !parts.anchor && !!treePath && treePath === activePath;
     setActiveTree(treePath);
+    if (sameDoc) {
+      return;
+    }
     var hash = "#openmd=" + encodeURIComponent(parts.file);
     if (parts.anchor) {
       hash += "&anchor=" + encodeURIComponent(parts.anchor);
