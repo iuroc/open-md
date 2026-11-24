@@ -525,6 +525,34 @@
     }
   }
 
+  function consumeAnchorHash() {
+    var hash = window.location.hash;
+    if (!hash) {
+      return;
+    }
+    var rest = hash.slice(1);
+    var next = "";
+    if (rest.indexOf("openmd=") === 0 || rest.indexOf("doc=") === 0) {
+      var params = new URLSearchParams(rest);
+      if (!params.get("anchor")) {
+        return;
+      }
+      params.delete("anchor");
+      next = "#" + params.toString();
+    }
+    try {
+      history.replaceState(history.state, "", next || window.location.pathname + window.location.search);
+    } catch (err) {
+      // file:// history updates are optional.
+    }
+  }
+
+  function scheduleConsumeAnchor() {
+    window.requestAnimationFrame(function () {
+      consumeAnchorHash();
+    });
+  }
+
   function scrollToAnchor(section, anchor) {
     var target = null;
     if (anchor) {
@@ -616,6 +644,9 @@
 
     if (updateHash !== false) {
       setHash(section.getAttribute("data-doc-id"), anchor || "");
+    }
+    if (anchor) {
+      consumeAnchorHash();
     }
     collectHeadings(section);
   }
@@ -1202,10 +1233,10 @@
   }
 
   window.addEventListener("hashchange", function () {
-    if (!isDocPage) {
-      return;
+    if (isDocPage) {
+      showDocFromHash(window.location.hash);
     }
-    showDocFromHash(window.location.hash);
+    scheduleConsumeAnchor();
   });
 
   document.addEventListener("dragstart", function (event) {

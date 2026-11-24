@@ -755,6 +755,24 @@ func TestReaderJSRestoresScrollOverAnchorOnReload(t *testing.T) {
 	}
 }
 
+func TestReaderJSConsumesAnchorAfterJump(t *testing.T) {
+	for _, want := range []string{
+		"function consumeAnchorHash()",
+		`rest.indexOf("openmd=") === 0 || rest.indexOf("doc=") === 0`,
+		`params.delete("anchor")`,
+		"history.replaceState(history.state, \"\", next || window.location.pathname + window.location.search)",
+		"function scheduleConsumeAnchor()",
+		"scheduleConsumeAnchor();",
+	} {
+		if !strings.Contains(readerJS, want) {
+			t.Fatalf("reader.js missing %q", want)
+		}
+	}
+	if strings.Contains(readerJS, `location.hash = ""`) {
+		t.Fatal("consuming the anchor must not assign an empty location.hash")
+	}
+}
+
 func TestReaderJSClosesMobileSidebarOnNavigation(t *testing.T) {
 	tocStart := strings.Index(readerJS, `toc.addEventListener("click"`)
 	if tocStart < 0 {
