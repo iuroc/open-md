@@ -65,8 +65,9 @@
   var mobileQuery = window.matchMedia ? window.matchMedia("(max-width: 900px)") : null;
   var activeHeadings = [];
   var sourceTopCache = { section: null, width: 0, tops: {} };
-  var outlineLocked = false;
-  var outlineLockTimer = null;
+  // Keeps the clicked outline item active while the window stays at the
+  // programmatic scroll position; cleared by the first real scroll away.
+  var outlineScrollTarget = null;
 
   function applyChromaTheme() {
     var dark = !!(themeQuery && themeQuery.matches);
@@ -322,6 +323,7 @@
       persistMode(mode);
     }
     if (previous !== next) {
+      outlineScrollTarget = null;
       applyScrollRatio(ratio);
       if (next === "split" || next === "source") {
         updateActiveTOC();
@@ -528,13 +530,21 @@
     }
   }
 
-  function lockActiveTOC(id) {
+  function setOutlineScrollTarget(id) {
     setActiveTOC(id);
-    outlineLocked = true;
-    clearTimeout(outlineLockTimer);
-    outlineLockTimer = setTimeout(function () {
-      outlineLocked = false;
-    }, 400);
+    outlineScrollTarget = { id: id, y: window.scrollY };
+  }
+
+  function consumeOutlineScrollTarget() {
+    if (!outlineScrollTarget) {
+      return false;
+    }
+    if (Math.abs(window.scrollY - outlineScrollTarget.y) > 1) {
+      outlineScrollTarget = null;
+      return false;
+    }
+    setActiveTOC(outlineScrollTarget.id);
+    return true;
   }
 
   function textOffsetForLine(text, line) {
@@ -646,7 +656,10 @@
   }
 
   function updateActiveTOC(sourceDriven) {
-    if (!toc || activeHeadings.length === 0 || outlineLocked) {
+    if (!toc || activeHeadings.length === 0) {
+      return;
+    }
+    if (consumeOutlineScrollTarget()) {
       return;
     }
     var mode = currentMode();
@@ -845,14 +858,16 @@
     var mode = currentMode();
     if (mode === "source") {
       scrollSourceToLine(section, tocLine(link), 72);
-      lockActiveTOC(anchor);
+      setOutlineScrollTarget(anchor);
       return;
     }
     scrollRenderedToTarget(section, target);
     if (mode === "split") {
       scrollSourceToLine(section, tocLine(link), 24);
+      setActiveTOC(anchor);
+      return;
     }
-    lockActiveTOC(anchor);
+    setOutlineScrollTarget(anchor);
   }
 
   function showDoc(docID, anchor, updateHash, preserveScroll) {
@@ -903,8 +918,7 @@
     setCopyStatus("");
 
     replaceTOC(section);
-    outlineLocked = false;
-    clearTimeout(outlineLockTimer);
+    outlineScrollTarget = null;
     applyChromaTheme();
 
     if (!preserveScroll && (!initialScrollRestore || anchor)) {
