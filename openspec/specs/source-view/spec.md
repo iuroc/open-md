@@ -123,12 +123,3 @@
 
 - **WHEN** 用户从源码视图切回渲染视图
 - **THEN** 页面同样停留在相近的滚动位置
-
-### Requirement: Outline navigation leaves source mode
-
-当源码视图处于激活状态时，点击大纲项 SHALL 先回到渲染视图，再滚动到对应标题。
-
-#### Scenario: Click outline in source mode
-
-- **WHEN** 源码视图处于激活状态，用户点击侧栏大纲中的标题
-- **THEN** 页面切换回渲染视图，并滚动到该标题
