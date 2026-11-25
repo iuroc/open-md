@@ -20,6 +20,11 @@
 - [x] 4.1 在 `reader.js` 增加 `openmd-sidebar-tab` 键、`rememberSidebarTab` 和 `restoreSidebarTab`：点击 Tab 写入 `sessionStorage`，初始化时校验 Tab 存在后恢复，程序回退不覆盖；扩展 `internal/render/page_test.go` 的 `TestReaderJSRestoresSidebarTab`，运行通过。
 - [x] 4.2 提升 `cacheGeneration`，运行 `go vet ./...` 和 `go test ./... -count=1` 通过；浏览器验证刷新保留 Tab、无记录默认文件列表、无文件列表时回退大纲、关闭浏览器后不保留。
 
+## 5. 刷新后恢复大纲
+
+- [x] 5.1 在 `restoreBodyScroll` 恢复正文/双视图滚动后显式调用 `updateActiveTOC()`：双视图刷新时两侧滚动被标记为程序同步，滚动事件会跳过高亮更新；新增 `TestReaderJSRestoresOutlineAfterReload` 契约测试。
+- [x] 5.2 提升 `cacheGeneration`，运行 `go test ./... -count=1` 通过；用无头 Chrome 在阅读、双视图、源码三种模式下验证刷新前后的大纲高亮项、侧栏滚动位置和可见性一致。
+
 ## 验证记录
 
 - `go vet ./...`、`go test ./... -count=1` 通过。
@@ -28,6 +33,7 @@
   - 同一浏览器中新建标签页打开目录页面：无历史记录，默认文件列表，存储键为空。
   - 单文件（没有文件列表 Tab）页面：始终显示大纲；预设存储值为文件列表时，刷新后不覆盖该值。
   - 带链接文档的单文件页面：无历史记录时默认大纲；点击文档 Tab 后刷新，仍为文档 Tab。
+- 修复刷新后大纲不跟随：80 个标题、1000×600 视口，滚动到 60% 后刷新。修复前双视图高亮回到第一个标题、侧栏回到顶部；修复后阅读 / 双视图 / 源码三种模式的 `activeId`、`sidebarTop`、`activeVisible` 与刷新前一致（例如高亮 `第-47-节`、`sidebarTop` 1002）。
 
 ## Workflow follow-up
 

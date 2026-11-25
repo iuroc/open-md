@@ -32,7 +32,7 @@ const (
 // cacheGeneration invalidates cached pages when templates or shared assets
 // change in ways a version label cannot capture, such as dev builds that all
 // share the 开发版 label.
-const cacheGeneration = "2026-11-25-builtin-manual"
+const cacheGeneration = "2026-11-25-outline-restore-after-reload"
 
 func cacheVersion(version string) string {
 	return version + "+" + cacheGeneration

@@ -48,6 +48,13 @@
 - **WHEN** 用户在大纲列表被滚动到别处后切回“大纲”Tab
 - **THEN** 当前高亮项立即出现在可见范围内
 
+#### Scenario: Reload after scrolling
+
+- **WHEN** 用户在阅读、双视图或源码模式下滚动到文档中部后刷新页面
+- **THEN** 正文恢复到上次的滚动位置
+- **AND** 大纲高亮与恢复后的可见标题一致
+- **AND** 高亮项位于侧栏的可见范围内
+
 ### Requirement: Sidebar tab choice survives refresh
 
 侧栏当前视图 Tab 的选择 SHALL 在同一浏览器标签页的会话内保留：刷新页面或在该标签页内切换文档后，SHALL 恢复上次选择的 Tab。没有保存过选择、记录无效，或记录对应的 Tab 在当前页面不存在时，MUST 保持默认：有文件列表时显示“文件列表”，没有文件列表时显示“大纲”。程序自动切换 MUST NOT 覆盖已记录的选择。关闭浏览器后 MUST NOT 保留选择。

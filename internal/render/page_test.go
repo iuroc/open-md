@@ -695,6 +695,23 @@ func TestReaderJSRevealsActiveOutline(t *testing.T) {
 	}
 }
 
+func TestReaderJSRestoresOutlineAfterReload(t *testing.T) {
+	start := strings.Index(readerJS, "function restoreBodyScroll() {")
+	if start < 0 {
+		t.Fatal("restoreBodyScroll missing")
+	}
+	end := strings.Index(readerJS[start:], "\n  }")
+	if end < 0 {
+		t.Fatal("restoreBodyScroll end not found")
+	}
+	body := readerJS[start : start+end]
+	apply := strings.Index(body, "applyScrollRatio(ratio);")
+	update := strings.Index(body, "updateActiveTOC();")
+	if apply < 0 || update < 0 || update < apply {
+		t.Fatalf("restoring scroll must refresh the outline: %s", body)
+	}
+}
+
 func TestReaderJSRestoresSidebarTab(t *testing.T) {
 	for _, want := range []string{
 		`var sidebarTabStorageKey = "openmd-sidebar-tab";`,

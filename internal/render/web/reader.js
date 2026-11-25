@@ -1514,6 +1514,9 @@
       return;
     }
     applyScrollRatio(ratio);
+    // Split view marks the pane scrolls as programmatic, so their scroll
+    // events skip updateActiveTOC. Refresh the outline explicitly here.
+    updateActiveTOC();
   }
 
   function finishInitialReveal(skipRestore) {
