@@ -22,3 +22,10 @@
 - [x] 4.1 提升 `internal/render/site.go` 的 `cacheGeneration` 值；运行 `go vet ./...` 和 `go test ./... -count=1` 全部通过。
 - [x] 4.2 用生成页面在浏览器验证：宣纸明暗两版、四种字体、四档字距、刷新与软导航后保持、代码块和源码视图不受影响、默认观感不变；记录每项结果。
 - [x] 4.3 提交全部改动，提交信息说明宣纸主题与正文排版设置；确认 `git status` 干净。
+
+## 5. 视觉修订
+
+- [x] 5.1 配色网格改为一行 5 个竖向色块（`grid-template-columns: repeat(5, minmax(0, 1fr))`，色点 16px、名称 11px），移除宣纸整行规则；更新 `TestPaperThemeStyles`，运行通过。
+- [x] 5.2 字体/字间距改为单行分段控件（4 段共享外框、细分隔线），字体段用各自字体、字间距段用各自字距；更新 `TestReaderSettingsGroups`，运行通过。
+- [x] 5.3 宣纸 `--accent-soft` 改为 `#e0ded5` / `#2b2e2c`，并在 `html[data-theme="paper"] .doc-section.markdown-body` 覆盖 GitHub 色变量和暖色阴影；增加 `TestPaperMarkdownColors`，运行通过。
+- [x] 5.4 重新生成页面做浏览器验证（5 色块一行、分段控件、明暗暖色、持久化、软导航、代码隔离、默认观感），提升 `cacheGeneration`，提交并确认工作区。

@@ -130,7 +130,8 @@ html[data-theme="paper"] {
   --border: #ddd2bd;
   --accent: #3f5d6b;
   --accent-fg: #ffffff;
-  --accent-soft: #e4ecef;
+  --accent-soft: #e0ded5;
+  --shadow: 0 12px 32px rgba(74, 58, 33, 0.16);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -144,7 +145,24 @@ html[data-theme="paper"] {
     --border: #3a342a;
     --accent: #93b3c0;
     --accent-fg: #10171b;
-    --accent-soft: #24343b;
+    --accent-soft: #2b2e2c;
+  }
+}
+
+html[data-theme="paper"] .doc-section.markdown-body {
+  --fgColor-default: var(--fg);
+  --fgColor-muted: var(--fg-muted);
+  --bgColor-default: var(--bg);
+  --bgColor-muted: #efe8d7;
+  --bgColor-neutral-muted: rgba(63, 93, 107, 0.10);
+  --borderColor-default: var(--border);
+  --borderColor-muted: var(--border);
+}
+
+@media (prefers-color-scheme: dark) {
+  html[data-theme="paper"] .doc-section.markdown-body {
+    --bgColor-muted: #242019;
+    --bgColor-neutral-muted: rgba(147, 179, 192, 0.12);
   }
 }
 
@@ -634,6 +652,7 @@ a:hover {
 
 .icon-button:focus-visible,
 .theme-option:focus-visible,
+.setting-option:focus-visible,
 .panel-action:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -1107,49 +1126,110 @@ a:hover {
   letter-spacing: 0.04em;
 }
 
-.theme-grid,
-.setting-grid {
+.theme-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 5px;
 }
 
-.theme-option,
-.setting-option {
+.theme-option {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 7px;
-  padding: 7px 8px;
+  justify-content: center;
+  gap: 4px;
+  padding: 7px 2px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: transparent;
   color: var(--fg);
   cursor: pointer;
   font: inherit;
-  font-size: 12px;
-  text-align: left;
+  font-size: 11px;
+  line-height: 1.2;
+  text-align: center;
 }
 
-.theme-option:hover,
-.setting-option:hover {
+.theme-option:hover {
   background: var(--bg-hover);
 }
 
-.theme-option[aria-pressed="true"],
-.setting-option[aria-pressed="true"] {
+.theme-option[aria-pressed="true"] {
   border-color: var(--accent);
   background: var(--accent-soft);
   color: var(--accent);
 }
 
-.theme-option[data-theme="paper"] {
-  grid-column: 1 / -1;
+.setting-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-subtle);
+}
+
+.setting-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 2px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--fg);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  text-align: center;
+}
+
+.setting-option + .setting-option {
+  border-left: 1px solid var(--border);
+}
+
+.setting-option:hover {
+  background: var(--bg-hover);
+}
+
+.setting-option[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+[data-reader-font="song"] {
+  font-family: "SimSun", "宋体", "Songti SC", "Noto Serif CJK SC", serif;
+}
+
+[data-reader-font="kai"] {
+  font-family: "KaiTi", "楷体", "Kaiti SC", STKaiti, serif;
+}
+
+[data-reader-font="fang"] {
+  font-family: "FangSong", "仿宋", "FangSong_GB2312", STFangsong, serif;
+}
+
+[data-reader-spacing="0"] {
+  letter-spacing: 0;
+}
+
+[data-reader-spacing="0.03"] {
+  letter-spacing: 0.03em;
+}
+
+[data-reader-spacing="0.06"] {
+  letter-spacing: 0.06em;
+}
+
+[data-reader-spacing="0.1"] {
+  letter-spacing: 0.10em;
 }
 
 .theme-dot {
   flex: 0 0 auto;
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
 }

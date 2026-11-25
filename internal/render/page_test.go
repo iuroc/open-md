@@ -465,9 +465,63 @@ func TestPaperThemeStyles(t *testing.T) {
 	if !strings.Contains(dot, "#f6f0e3") || !strings.Contains(dot, "#3f5d6b") {
 		t.Fatalf("paper theme dot missing: %s", dot)
 	}
-	option := readerCSSRule(t, `.theme-option[data-theme="paper"] {`)
-	if !strings.Contains(option, "grid-column: 1 / -1;") {
-		t.Fatalf("paper theme option must span the grid: %s", option)
+	themeGrid := readerCSSRule(t, ".theme-grid {")
+	if !strings.Contains(themeGrid, "grid-template-columns: repeat(5, minmax(0, 1fr));") {
+		t.Fatalf("theme grid must fit five swatches in one row: %s", themeGrid)
+	}
+	if strings.Contains(readerCSS, "grid-column: 1 / -1") {
+		t.Fatal("theme options must not span multiple columns")
+	}
+	option := readerCSSRule(t, ".theme-option {")
+	if !strings.Contains(option, "font-size: 11px;") {
+		t.Fatalf("theme option label size missing: %s", option)
+	}
+	dotBase := readerCSSRule(t, ".theme-dot {")
+	if !strings.Contains(dotBase, "width: 16px;") {
+		t.Fatalf("theme dot size missing: %s", dotBase)
+	}
+}
+
+func TestPaperMarkdownColors(t *testing.T) {
+	paper := readerCSSRule(t, `html[data-theme="paper"] {`)
+	for _, want := range []string{
+		"--accent-soft: #e0ded5;",
+		"--shadow: 0 12px 32px rgba(74, 58, 33, 0.16);",
+	} {
+		if !strings.Contains(paper, want) {
+			t.Fatalf("paper theme missing %q: %s", want, paper)
+		}
+	}
+	markdown := readerCSSRule(t, `html[data-theme="paper"] .doc-section.markdown-body {`)
+	for _, want := range []string{
+		"--fgColor-default: var(--fg);",
+		"--fgColor-muted: var(--fg-muted);",
+		"--bgColor-default: var(--bg);",
+		"--bgColor-muted: #efe8d7;",
+		"--bgColor-neutral-muted: rgba(63, 93, 107, 0.10);",
+		"--borderColor-default: var(--border);",
+		"--borderColor-muted: var(--border);",
+	} {
+		if !strings.Contains(markdown, want) {
+			t.Fatalf("paper markdown colors missing %q: %s", want, markdown)
+		}
+	}
+	for _, want := range []string{
+		"--accent-soft: #2b2e2c;",
+		"--bgColor-muted: #242019;",
+		"--bgColor-neutral-muted: rgba(147, 179, 192, 0.12);",
+	} {
+		if !strings.Contains(readerCSS, want) {
+			t.Fatalf("paper dark colors missing %q", want)
+		}
+	}
+	for _, banned := range []string{
+		"--accent-soft: #e4ecef;",
+		"--accent-soft: #24343b;",
+	} {
+		if strings.Contains(readerCSS, banned) {
+			t.Fatalf("stale paper selection color remains: %q", banned)
+		}
 	}
 }
 
@@ -571,6 +625,39 @@ func TestReaderSettingsGroups(t *testing.T) {
 		".setting-option {",
 		".setting-option:hover {",
 		`.setting-option[aria-pressed="true"] {`,
+	} {
+		if !strings.Contains(readerCSS, want) {
+			t.Fatalf("reader.css missing %q", want)
+		}
+	}
+	grid := readerCSSRule(t, ".setting-grid {")
+	for _, want := range []string{
+		"grid-template-columns: repeat(4, minmax(0, 1fr));",
+		"gap: 0;",
+		"overflow: hidden;",
+	} {
+		if !strings.Contains(grid, want) {
+			t.Fatalf("setting grid missing %q: %s", want, grid)
+		}
+	}
+	option := readerCSSRule(t, ".setting-option {")
+	for _, want := range []string{
+		"justify-content: center;",
+		"border: 0;",
+		"text-align: center;",
+	} {
+		if !strings.Contains(option, want) {
+			t.Fatalf("setting option missing %q: %s", want, option)
+		}
+	}
+	divider := readerCSSRule(t, ".setting-option + .setting-option {")
+	if !strings.Contains(divider, "border-left: 1px solid var(--border);") {
+		t.Fatalf("setting divider missing: %s", divider)
+	}
+	for _, want := range []string{
+		`[data-reader-font="song"] {`,
+		`[data-reader-spacing="0.06"] {`,
+		"letter-spacing: 0.06em;",
 	} {
 		if !strings.Contains(readerCSS, want) {
 			t.Fatalf("reader.css missing %q", want)
