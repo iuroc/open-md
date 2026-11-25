@@ -65,6 +65,8 @@
   var mobileQuery = window.matchMedia ? window.matchMedia("(max-width: 900px)") : null;
   var activeHeadings = [];
   var sourceTopCache = { section: null, width: 0, tops: {} };
+  var outlineLocked = false;
+  var outlineLockTimer = null;
 
   function applyChromaTheme() {
     var dark = !!(themeQuery && themeQuery.matches);
@@ -526,6 +528,15 @@
     }
   }
 
+  function lockActiveTOC(id) {
+    setActiveTOC(id);
+    outlineLocked = true;
+    clearTimeout(outlineLockTimer);
+    outlineLockTimer = setTimeout(function () {
+      outlineLocked = false;
+    }, 400);
+  }
+
   function textOffsetForLine(text, line) {
     if (line <= 0) {
       return 0;
@@ -607,6 +618,7 @@
     var split = currentMode() === "split";
     var origin = split ? pane.getBoundingClientRect().top : 0;
     var scrolled = split ? pane.scrollTop : 0;
+    var limit = split ? 48 : 80;
     var current = null;
     var matched = false;
     for (var i = 0; i < links.length; i++) {
@@ -619,7 +631,7 @@
         continue;
       }
       var top = pane.getBoundingClientRect().top + contentTop - scrolled - origin;
-      if (top <= 130) {
+      if (top <= limit) {
         current = links[i].getAttribute("data-toc-id");
         matched = true;
       } else {
@@ -634,7 +646,7 @@
   }
 
   function updateActiveTOC(sourceDriven) {
-    if (!toc || activeHeadings.length === 0) {
+    if (!toc || activeHeadings.length === 0 || outlineLocked) {
       return;
     }
     var mode = currentMode();
@@ -654,10 +666,11 @@
         origin = pane.getBoundingClientRect().top;
       }
     }
+    var limit = mode === "split" ? 48 : 80;
     var current = activeHeadings[0].id;
     for (var i = 0; i < activeHeadings.length; i++) {
       var top = activeHeadings[i].getBoundingClientRect().top - origin;
-      if (top <= 130) {
+      if (top <= limit) {
         current = activeHeadings[i].id;
       } else {
         break;
@@ -832,14 +845,14 @@
     var mode = currentMode();
     if (mode === "source") {
       scrollSourceToLine(section, tocLine(link), 72);
-      setActiveTOC(anchor);
+      lockActiveTOC(anchor);
       return;
     }
     scrollRenderedToTarget(section, target);
     if (mode === "split") {
       scrollSourceToLine(section, tocLine(link), 24);
     }
-    setActiveTOC(anchor);
+    lockActiveTOC(anchor);
   }
 
   function showDoc(docID, anchor, updateHash, preserveScroll) {
@@ -890,6 +903,8 @@
     setCopyStatus("");
 
     replaceTOC(section);
+    outlineLocked = false;
+    clearTimeout(outlineLockTimer);
     applyChromaTheme();
 
     if (!preserveScroll && (!initialScrollRestore || anchor)) {
