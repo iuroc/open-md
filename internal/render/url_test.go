@@ -201,3 +201,9 @@ func TestRenderMarkdownKeepsEncodedImageURL(t *testing.T) {
 		t.Fatalf("encoded image URL missing: %s", html)
 	}
 }
+
+func TestFileURLFormatsWindowsPath(t *testing.T) {
+	if got := FileURL(`C:\docs\a b.md`); got != "file:///C:/docs/a%20b.md" {
+		t.Fatalf("FileURL = %q", got)
+	}
+}

@@ -115,6 +115,12 @@ func decodeFragment(fragment string) string {
 	return decoded
 }
 
+// FileURL returns the file:/// URL for an absolute local path.
+func FileURL(path string) string {
+	u, _ := fileURL(path, "", "")
+	return u
+}
+
 func fileURL(abs, rawQuery, fragment string) (string, error) {
 	abs = filepath.Clean(abs)
 	if strings.HasPrefix(abs, `\\`) {
