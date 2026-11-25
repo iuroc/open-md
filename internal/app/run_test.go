@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -240,5 +241,93 @@ func TestRunInstalledUninstallSpawnsHelperWhenNeeded(t *testing.T) {
 	}
 	if !fi.uninstallCalled || !fi.helperCalled {
 		t.Fatalf("uninstall=%v helper=%v", fi.uninstallCalled, fi.helperCalled)
+	}
+}
+
+func TestOpenPageAddsManualLink(t *testing.T) {
+	md := filepath.Join(t.TempDir(), "note.md")
+	if err := os.WriteFile(md, []byte("# Hello\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	opener := &fakeOpener{}
+	a := &App{
+		Temp:   tempdir.New(t.TempDir()),
+		Opener: opener,
+		Manual: func(string) (string, error) { return "file:///C:/manual/doc-x.html", nil },
+	}
+	if err := a.Run(Invocation{Mode: ModeReadFile, Path: md}); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(opener.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "file:///C:/manual/doc-x.html") || !strings.Contains(string(data), "打开使用手册") {
+		t.Fatal("manual link missing from opened page")
+	}
+}
+
+func TestOpenPageHidesManualWhenEnsureFails(t *testing.T) {
+	md := filepath.Join(t.TempDir(), "note.md")
+	if err := os.WriteFile(md, []byte("# Hello\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	opener := &fakeOpener{}
+	a := &App{
+		Temp:   tempdir.New(t.TempDir()),
+		Opener: opener,
+		Manual: func(string) (string, error) { return "", errors.New("boom") },
+	}
+	if err := a.Run(Invocation{Mode: ModeReadFile, Path: md}); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(opener.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(data), "打开使用手册") {
+		t.Fatal("manual link must be hidden when Ensure fails")
+	}
+}
+
+func TestOpenPageTriesManualForFallbackBase(t *testing.T) {
+	tmp := t.TempDir()
+	t.Setenv("TEMP", tmp)
+	t.Setenv("TMP", tmp)
+
+	blocked := filepath.Join(t.TempDir(), "blocked")
+	if err := os.WriteFile(blocked, []byte("x"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	md := filepath.Join(t.TempDir(), "note.md")
+	if err := os.WriteFile(md, []byte("# Hello\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	opener := &fakeOpener{}
+	var bases []string
+	a := &App{
+		Temp:   tempdir.New(blocked),
+		Opener: opener,
+		Manual: func(base string) (string, error) {
+			bases = append(bases, base)
+			return "file:///C:/manual/doc-x.html", nil
+		},
+	}
+	if err := a.Run(Invocation{Mode: ModeReadFile, Path: md}); err != nil {
+		t.Fatal(err)
+	}
+	fallback := filepath.Join(tmp, "OpenMD")
+	found := false
+	for _, base := range bases {
+		if base == fallback {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("manual was not attempted in fallback base: %#v", bases)
+	}
+	data, _ := os.ReadFile(opener.path)
+	if !strings.Contains(string(data), "打开使用手册") {
+		t.Fatal("fallback page lost the manual link")
 	}
 }

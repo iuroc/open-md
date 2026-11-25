@@ -20,4 +20,5 @@ type App struct {
 	Temp       *tempdir.Manager
 	Opener     browser.Opener
 	Executable func() (string, error)
+	Manual     func(baseDir string) (string, error)
 }

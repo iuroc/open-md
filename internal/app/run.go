@@ -9,6 +9,7 @@ import (
 	"openmd/internal/browser"
 	"openmd/internal/buildinfo"
 	"openmd/internal/install"
+	"openmd/internal/manual"
 	"openmd/internal/render"
 	"openmd/internal/tempdir"
 	"openmd/internal/ui"
@@ -77,11 +78,18 @@ func (a *App) openPage(path string, isDir bool) error {
 	_ = a.Temp.Cleanup()
 
 	build := func(base string) (*render.Site, error) {
+		manualURL := ""
+		if a.Manual != nil {
+			if url, err := a.Manual(base); err == nil {
+				manualURL = url
+			}
+		}
 		opts := render.SiteOptions{
 			CacheBase:  filepath.Join(base, "rendered"),
 			Version:    buildinfo.VersionLabel(),
 			AllowCache: buildinfo.IsReleaseBuild(),
 			Confirm:    a.confirmLoad,
+			ManualURL:  manualURL,
 		}
 		if isDir {
 			return render.BuildDirSite(path, opts)
@@ -108,6 +116,14 @@ func (a *App) openPage(path string, isDir bool) error {
 		return fmt.Errorf("打开默认浏览器失败: %w", err)
 	}
 	return nil
+}
+
+func manualURLFor(baseDir string) (string, error) {
+	result, err := manual.Ensure(baseDir)
+	if err != nil {
+		return "", err
+	}
+	return result.URL, nil
 }
 
 func (a *App) confirmLoad(estimate render.Estimate) render.LoadChoice {
@@ -163,6 +179,7 @@ func Main() {
 		Temp:       tempdir.New(filepath.Join(installDir, "openmd-temp")),
 		Opener:     browser.NewWindowsOpener(),
 		Executable: os.Executable,
+		Manual:     manualURLFor,
 	}
 	invocation, err := ParseArgs(os.Args[1:])
 	if err != nil {
