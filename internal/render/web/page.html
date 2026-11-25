@@ -40,12 +40,19 @@
         </svg>
       </button>
     </div>
+    {{if eq .Mode "dir"}}
+    <div class="sidebar-tabs" role="tablist" aria-label="侧栏视图">
+      <button type="button" class="sidebar-tab active" id="tab-button-files" data-tab="files" role="tab" aria-selected="true" aria-controls="tab-panel-files">文件列表</button>
+      <button type="button" class="sidebar-tab" id="tab-button-toc" data-tab="toc" role="tab" aria-selected="false" aria-controls="tab-panel-toc">大纲</button>
+    </div>
+    {{else if .LinkedDocuments}}
+    <div class="sidebar-tabs" role="tablist" aria-label="侧栏视图">
+      <button type="button" class="sidebar-tab active" id="tab-button-toc" data-tab="toc" role="tab" aria-selected="true" aria-controls="tab-panel-toc">大纲</button>
+      <button type="button" class="sidebar-tab" id="tab-button-files" data-tab="files" role="tab" aria-selected="false" aria-controls="tab-panel-files">文档</button>
+    </div>
+    {{end}}
     <div class="sidebar-scroll">
       {{if eq .Mode "dir"}}
-      <div class="sidebar-tabs" role="tablist" aria-label="侧栏视图">
-        <button type="button" class="sidebar-tab active" id="tab-button-files" data-tab="files" role="tab" aria-selected="true" aria-controls="tab-panel-files">文件列表</button>
-        <button type="button" class="sidebar-tab" id="tab-button-toc" data-tab="toc" role="tab" aria-selected="false" aria-controls="tab-panel-toc">大纲</button>
-      </div>
       <div class="tab-panel" id="tab-panel-files" data-tab-panel="files" role="tabpanel" aria-labelledby="tab-button-files">
         <nav id="doc-list" class="doc-tree" aria-label="文档">
           <ul class="tree-root">{{template "tree-nodes" .Tree}}</ul>
@@ -61,10 +68,6 @@
         <nav id="toc" aria-label="大纲"></nav>
       </div>
       {{else if .LinkedDocuments}}
-      <div class="sidebar-tabs" role="tablist" aria-label="侧栏视图">
-        <button type="button" class="sidebar-tab active" id="tab-button-toc" data-tab="toc" role="tab" aria-selected="true" aria-controls="tab-panel-toc">大纲</button>
-        <button type="button" class="sidebar-tab" id="tab-button-files" data-tab="files" role="tab" aria-selected="false" aria-controls="tab-panel-files">文档</button>
-      </div>
       <div class="tab-panel" id="tab-panel-toc" data-tab-panel="toc" role="tabpanel" aria-labelledby="tab-button-toc">
         <nav id="toc" aria-label="大纲"></nav>
       </div>

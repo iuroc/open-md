@@ -108,17 +108,19 @@
         </svg>
       </button>
     </div>
+    {{if .HasFilesPanel}}
+    <div class="sidebar-tabs" role="tablist" aria-label="侧栏视图">
+      {{if eq .Mode "dir"}}
+      <button type="button" class="sidebar-tab active" id="tab-button-files" data-tab="files" role="tab" aria-selected="true" aria-controls="tab-panel-files">文件列表</button>
+      <button type="button" class="sidebar-tab" id="tab-button-toc" data-tab="toc" role="tab" aria-selected="false" aria-controls="tab-panel-toc">大纲</button>
+      {{else}}
+      <button type="button" class="sidebar-tab active" id="tab-button-toc" data-tab="toc" role="tab" aria-selected="true" aria-controls="tab-panel-toc">大纲</button>
+      <button type="button" class="sidebar-tab" id="tab-button-files" data-tab="files" role="tab" aria-selected="false" aria-controls="tab-panel-files">文档</button>
+      {{end}}
+    </div>
+    {{end}}
     <div class="sidebar-scroll">
       {{if .HasFilesPanel}}
-      <div class="sidebar-tabs" role="tablist" aria-label="侧栏视图">
-        {{if eq .Mode "dir"}}
-        <button type="button" class="sidebar-tab active" id="tab-button-files" data-tab="files" role="tab" aria-selected="true" aria-controls="tab-panel-files">文件列表</button>
-        <button type="button" class="sidebar-tab" id="tab-button-toc" data-tab="toc" role="tab" aria-selected="false" aria-controls="tab-panel-toc">大纲</button>
-        {{else}}
-        <button type="button" class="sidebar-tab active" id="tab-button-toc" data-tab="toc" role="tab" aria-selected="true" aria-controls="tab-panel-toc">大纲</button>
-        <button type="button" class="sidebar-tab" id="tab-button-files" data-tab="files" role="tab" aria-selected="false" aria-controls="tab-panel-files">文档</button>
-        {{end}}
-      </div>
       <div class="tab-panel" id="tab-panel-files" data-tab-panel="files" role="tabpanel" aria-labelledby="tab-button-files"{{if ne .Mode "dir"}} hidden{{end}}>
         <nav id="doc-list" class="doc-tree" aria-label="文档"></nav>
       </div>

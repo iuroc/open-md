@@ -647,6 +647,54 @@ func TestThemedScrollbars(t *testing.T) {
 	}
 }
 
+func TestSidebarTabsStayPinned(t *testing.T) {
+	tabs := readerCSSRule(t, ".sidebar-tabs {")
+	for _, want := range []string{
+		"flex: 0 0 auto;",
+		"background: var(--bg-sidebar);",
+	} {
+		if !strings.Contains(tabs, want) {
+			t.Fatalf("sidebar tabs missing %q: %s", want, tabs)
+		}
+	}
+	scroll := readerCSSRule(t, ".sidebar-scroll {")
+	for _, want := range []string{"flex: 1;", "overflow: auto;"} {
+		if !strings.Contains(scroll, want) {
+			t.Fatalf("sidebar scroll missing %q: %s", want, scroll)
+		}
+	}
+	for name, source := range map[string]string{
+		"docpage.html": docPageTemplateSource,
+		"page.html":    pageTemplateSource,
+	} {
+		tabsAt := strings.Index(source, `class="sidebar-tabs"`)
+		scrollAt := strings.Index(source, `class="sidebar-scroll"`)
+		if tabsAt < 0 || scrollAt < 0 || tabsAt > scrollAt {
+			t.Fatalf("%s must keep the tab bar outside the scrolling list", name)
+		}
+	}
+}
+
+func TestReaderJSRevealsActiveOutline(t *testing.T) {
+	for _, want := range []string{
+		`var lastActiveTOC = "";`,
+		"function tocPanelVisible()",
+		"function revealTOCLink(link)",
+		"sidebarScroll.scrollTop += delta;",
+		"lastActiveTOC = id;",
+		"revealTOCLink(active);",
+		`revealTOCLink(toc ? toc.querySelector(".toc-link.active") : null);`,
+	} {
+		if !strings.Contains(readerJS, want) {
+			t.Fatalf("reader.js missing %q", want)
+		}
+	}
+	replace := strings.Index(readerJS, "function replaceTOC(section) {")
+	if replace < 0 || !strings.Contains(readerJS[replace:replace+200], `lastActiveTOC = "";`) {
+		t.Fatal("replacing the outline must reset the active item tracker")
+	}
+}
+
 func TestReaderJSTypographyPresets(t *testing.T) {
 	for _, want := range []string{
 		"var readerFonts = {",

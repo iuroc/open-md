@@ -75,6 +75,7 @@
   // Keeps the clicked outline item active while the window stays at the
   // programmatic scroll position; cleared by the first real scroll away.
   var outlineScrollTarget = null;
+  var lastActiveTOC = "";
 
   function applyChromaTheme() {
     var dark = !!(themeQuery && themeQuery.matches);
@@ -551,10 +552,57 @@
     updateActiveTOC();
   }
 
+  function tocPanelVisible() {
+    if (!toc) {
+      return false;
+    }
+    var panel = toc.closest ? toc.closest(".tab-panel") : null;
+    return !panel || !panel.hidden;
+  }
+
+  // Scrolls the outline list just enough to show the active item. It never
+  // touches the reading window, and the sidebar tabs above the list set the
+  // top edge so the item stays clear of them.
+  function revealTOCLink(link) {
+    if (!link || !sidebarScroll || !tocPanelVisible()) {
+      return;
+    }
+    var column = sidebarScroll.getBoundingClientRect();
+    var rect = link.getBoundingClientRect();
+    var gap = 6;
+    var top = column.top + gap;
+    var tabs = document.querySelector(".sidebar-tabs");
+    if (tabs) {
+      var tabsRect = tabs.getBoundingClientRect();
+      if (tabsRect.height > 0) {
+        top = Math.max(top, tabsRect.bottom + gap);
+      }
+    }
+    var bottom = column.bottom - gap;
+    var delta = 0;
+    if (rect.top < top) {
+      delta = rect.top - top;
+    } else if (rect.bottom > bottom) {
+      delta = rect.bottom - bottom;
+    }
+    if (delta !== 0) {
+      sidebarScroll.scrollTop += delta;
+    }
+  }
+
   function setActiveTOC(id) {
     var links = toc ? toc.querySelectorAll(".toc-link") : [];
+    var active = null;
     for (var i = 0; i < links.length; i++) {
-      links[i].classList.toggle("active", links[i].getAttribute("data-toc-id") === id);
+      var on = links[i].getAttribute("data-toc-id") === id;
+      links[i].classList.toggle("active", on);
+      if (on) {
+        active = links[i];
+      }
+    }
+    if (id !== lastActiveTOC) {
+      lastActiveTOC = id;
+      revealTOCLink(active);
     }
   }
 
@@ -734,6 +782,7 @@
     }
     if (name === "toc") {
       updateActiveTOC();
+      revealTOCLink(toc ? toc.querySelector(".toc-link.active") : null);
     }
   }
 
@@ -741,6 +790,7 @@
     if (!toc) {
       return;
     }
+    lastActiveTOC = "";
     toc.replaceChildren();
     if (!section) {
       return;
