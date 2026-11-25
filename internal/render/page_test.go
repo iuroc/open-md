@@ -695,6 +695,29 @@ func TestReaderJSRevealsActiveOutline(t *testing.T) {
 	}
 }
 
+func TestReaderJSRestoresSidebarTab(t *testing.T) {
+	for _, want := range []string{
+		`var sidebarTabStorageKey = "openmd-sidebar-tab";`,
+		"function sidebarTabAvailable(name)",
+		"function rememberSidebarTab(name)",
+		"function restoreSidebarTab()",
+		"sessionStorage.setItem(sidebarTabStorageKey, name);",
+		"sessionStorage.getItem(sidebarTabStorageKey);",
+		"restoreSidebarTab();",
+	} {
+		if !strings.Contains(readerJS, want) {
+			t.Fatalf("reader.js missing %q", want)
+		}
+	}
+	click := strings.Index(readerJS, `tabButtons[t].addEventListener("click"`)
+	if click < 0 || !strings.Contains(readerJS[click:click+320], "rememberSidebarTab(") {
+		t.Fatal("clicking a sidebar tab must remember the choice")
+	}
+	if strings.Contains(readerJS, "rememberSidebarTab(stored)") {
+		t.Fatal("restoring a tab must not overwrite the remembered choice")
+	}
+}
+
 func TestReaderJSTypographyPresets(t *testing.T) {
 	for _, want := range []string{
 		"var readerFonts = {",

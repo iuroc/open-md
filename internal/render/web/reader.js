@@ -13,6 +13,7 @@
   var modeStorageKey = "openmd-view:" + rootKey;
   var legacySourceKey = "openmd-source:" + rootKey;
   var sidebarScrollKey = "openmd-sidebar-scroll:" + rootKey;
+  var sidebarTabStorageKey = "openmd-sidebar-tab";
   var sidebarScrollTimer = null;
   var bodyScrollTimer = null;
   var suppressTreeScrollOnce = false;
@@ -786,6 +787,38 @@
     }
   }
 
+  function sidebarTabAvailable(name) {
+    for (var i = 0; i < tabButtons.length; i++) {
+      if (tabButtons[i].getAttribute("data-tab") === name) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function rememberSidebarTab(name) {
+    if (name !== "files" && name !== "toc") {
+      return;
+    }
+    try {
+      sessionStorage.setItem(sidebarTabStorageKey, name);
+    } catch (err) {}
+  }
+
+  function restoreSidebarTab() {
+    if (tabButtons.length === 0) {
+      return;
+    }
+    var stored = null;
+    try {
+      stored = sessionStorage.getItem(sidebarTabStorageKey);
+    } catch (err) {}
+    if ((stored !== "files" && stored !== "toc") || !sidebarTabAvailable(stored)) {
+      return;
+    }
+    activateTab(stored);
+  }
+
   function replaceTOC(section) {
     if (!toc) {
       return;
@@ -1280,7 +1313,9 @@
 
   for (var t = 0; t < tabButtons.length; t++) {
     tabButtons[t].addEventListener("click", function () {
-      activateTab(this.getAttribute("data-tab"));
+      var name = this.getAttribute("data-tab");
+      activateTab(name);
+      rememberSidebarTab(name);
     });
   }
 
@@ -1913,6 +1948,7 @@
   syncMenuButton();
   setSettingsOpen(false);
   setModeMenuOpen(false, false);
+  restoreSidebarTab();
   restoreViewMode();
 
   var storedTheme = readPref("openmd-theme");

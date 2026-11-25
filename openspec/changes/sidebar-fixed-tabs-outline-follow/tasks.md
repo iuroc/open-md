@@ -15,6 +15,20 @@
 - [x] 3.2 生成包含大量标题和文件的页面做浏览器验证：文件列表和大纲滚动后 Tab 仍可点击；滚动正文时大纲列表跟随高亮、已可见时不抖动；源码和双视图滚动同样生效；切换 Tab 后当前项可见；侧栏滚动不影响正文。记录每项结果。
 - [x] 3.3 提交全部改动，提交信息说明固定侧栏 Tab 和大纲跟随；确认 `git status` 干净。
 
+## 4. 记住侧栏 Tab
+
+- [x] 4.1 在 `reader.js` 增加 `openmd-sidebar-tab` 键、`rememberSidebarTab` 和 `restoreSidebarTab`：点击 Tab 写入 `sessionStorage`，初始化时校验 Tab 存在后恢复，程序回退不覆盖；扩展 `internal/render/page_test.go` 的 `TestReaderJSRestoresSidebarTab`，运行通过。
+- [x] 4.2 提升 `cacheGeneration`，运行 `go vet ./...` 和 `go test ./... -count=1` 通过；浏览器验证刷新保留 Tab、无记录默认文件列表、无文件列表时回退大纲、关闭浏览器后不保留。
+
+## 验证记录
+
+- `go vet ./...`、`go test ./... -count=1` 通过。
+- 用无头 Chrome 打开真实渲染页面验证侧栏 Tab 记忆：
+  - 目录模式首次打开：文件列表；点击大纲后 `sessionStorage` 写入 `toc`，刷新后仍为大纲；再切回文件列表并刷新，仍为文件列表。
+  - 同一浏览器中新建标签页打开目录页面：无历史记录，默认文件列表，存储键为空。
+  - 单文件（没有文件列表 Tab）页面：始终显示大纲；预设存储值为文件列表时，刷新后不覆盖该值。
+  - 带链接文档的单文件页面：无历史记录时默认大纲；点击文档 Tab 后刷新，仍为文档 Tab。
+
 ## Workflow follow-up
 
 - 实现完成并验证后归档 change，同步 `reader-sidebar` 主 spec。
