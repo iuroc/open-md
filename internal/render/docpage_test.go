@@ -7,6 +7,25 @@ import (
 	"testing"
 )
 
+func TestRenderDocPageTOCIncludesSourceLine(t *testing.T) {
+	out, err := RenderDocPage(DocPageData{
+		Title:         "A",
+		InlineSection: true,
+		Doc: Document{
+			ID:    "doc-0",
+			Title: "A",
+			HTML:  template.HTML("<p>a</p>"),
+			TOC:   []Heading{{Level: 1, Text: "T", ID: "t", Line: 3}},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(out), `data-toc-line="3"`) {
+		t.Fatal("doc page TOC is missing the source line")
+	}
+}
+
 func TestRenderDocPageShowsAuthorIDInsteadOfLink(t *testing.T) {
 	out, err := RenderDocPage(DocPageData{
 		Title:      "A",

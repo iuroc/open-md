@@ -245,7 +245,7 @@
       {{range $i, $doc := .Documents}}
       <section class="doc-section markdown-body" id="{{$doc.ID}}" data-doc-id="{{$doc.ID}}" data-title="{{$doc.Title}}" data-path="{{$doc.Path}}" data-dir="{{$doc.Dir}}" data-has-source="{{$doc.HasSource}}"{{if ne $i $active}} hidden{{end}}>
         <template class="toc-template">
-          {{range $doc.TOC}}<a class="toc-link toc-level-{{.Level}}" href="#{{.ID}}" data-toc-id="{{.ID}}">{{.Text}}</a>{{end}}
+          {{range $doc.TOC}}<a class="toc-link toc-level-{{.Level}}" href="#{{.ID}}" data-toc-id="{{.ID}}" data-toc-line="{{.Line}}">{{.Text}}</a>{{end}}
         </template>
         <div class="doc-rendered">{{$doc.HTML}}</div>
         <div class="source-view">

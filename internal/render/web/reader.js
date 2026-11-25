@@ -64,6 +64,7 @@
   var themeQuery = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
   var mobileQuery = window.matchMedia ? window.matchMedia("(max-width: 900px)") : null;
   var activeHeadings = [];
+  var sourceTopCache = { section: null, width: 0, tops: {} };
 
   function applyChromaTheme() {
     var dark = !!(themeQuery && themeQuery.matches);
@@ -171,6 +172,10 @@
 
   function sourcePane() {
     var section = currentSection();
+    return section ? section.querySelector(".source-view") : null;
+  }
+
+  function sourceViewFor(section) {
     return section ? section.querySelector(".source-view") : null;
   }
 
@@ -316,7 +321,7 @@
     }
     if (previous !== next) {
       applyScrollRatio(ratio);
-      if (next === "split") {
+      if (next === "split" || next === "source") {
         updateActiveTOC();
       }
     }
@@ -514,23 +519,151 @@
     updateActiveTOC();
   }
 
-  function updateActiveTOC() {
-    if (!toc || activeHeadings.length === 0 || currentMode() === "source") {
+  function setActiveTOC(id) {
+    var links = toc ? toc.querySelectorAll(".toc-link") : [];
+    for (var i = 0; i < links.length; i++) {
+      links[i].classList.toggle("active", links[i].getAttribute("data-toc-id") === id);
+    }
+  }
+
+  function textOffsetForLine(text, line) {
+    if (line <= 0) {
+      return 0;
+    }
+    var offset = 0;
+    for (var i = 0; i < line; i++) {
+      var next = text.indexOf("\n", offset);
+      if (next < 0) {
+        return -1;
+      }
+      offset = next + 1;
+    }
+    return offset;
+  }
+
+  function caretTopAt(pre, offset) {
+    if (offset < 0 || !document.createTreeWalker) {
+      return null;
+    }
+    var walker = document.createTreeWalker(pre, NodeFilter.SHOW_TEXT, null, false);
+    var node = walker.nextNode();
+    var remaining = offset;
+    while (node) {
+      var length = node.nodeValue ? node.nodeValue.length : 0;
+      if (remaining <= length) {
+        var start = Math.min(remaining, Math.max(0, length - 1));
+        var range = document.createRange();
+        range.setStart(node, start);
+        range.setEnd(node, Math.min(start + 1, length));
+        var rect = range.getBoundingClientRect();
+        return rect && rect.height > 0 ? rect.top : null;
+      }
+      remaining -= length;
+      node = walker.nextNode();
+    }
+    return null;
+  }
+
+  function sourceTopForLine(section, line) {
+    var pane = sourceViewFor(section);
+    if (!pane || !section || section.hidden || isNaN(line) || line < 0) {
+      return null;
+    }
+    var pre = pane.querySelector(".source-code");
+    if (!pre) {
+      return null;
+    }
+    var width = pane.clientWidth;
+    if (sourceTopCache.section !== section || sourceTopCache.width !== width) {
+      sourceTopCache = { section: section, width: width, tops: {} };
+    }
+    if (Object.prototype.hasOwnProperty.call(sourceTopCache.tops, line)) {
+      return sourceTopCache.tops[line];
+    }
+    var offset = textOffsetForLine(pre.textContent || "", line);
+    var caretTop = offset >= 0 ? caretTopAt(pre, offset) : null;
+    if (caretTop === null) {
+      sourceTopCache.tops[line] = null;
+      return null;
+    }
+    var top = caretTop - pane.getBoundingClientRect().top + pane.scrollTop;
+    sourceTopCache.tops[line] = top;
+    return top;
+  }
+
+  function updateActiveTOCFromSource() {
+    var section = currentSection();
+    if (!section || !toc) {
+      return false;
+    }
+    var pane = sourceViewFor(section);
+    if (!pane) {
+      return false;
+    }
+    var links = toc.querySelectorAll(".toc-link");
+    if (links.length === 0) {
+      return false;
+    }
+    var split = currentMode() === "split";
+    var origin = split ? pane.getBoundingClientRect().top : 0;
+    var scrolled = split ? pane.scrollTop : 0;
+    var current = null;
+    var matched = false;
+    for (var i = 0; i < links.length; i++) {
+      var line = parseInt(links[i].getAttribute("data-toc-line"), 10);
+      if (isNaN(line)) {
+        continue;
+      }
+      var contentTop = sourceTopForLine(section, line);
+      if (contentTop === null) {
+        continue;
+      }
+      var top = pane.getBoundingClientRect().top + contentTop - scrolled - origin;
+      if (top <= 130) {
+        current = links[i].getAttribute("data-toc-id");
+        matched = true;
+      } else {
+        break;
+      }
+    }
+    if (!matched) {
+      return false;
+    }
+    setActiveTOC(current);
+    return true;
+  }
+
+  function updateActiveTOC(sourceDriven) {
+    if (!toc || activeHeadings.length === 0) {
       return;
+    }
+    var mode = currentMode();
+    if (mode === "source") {
+      updateActiveTOCFromSource();
+      return;
+    }
+    if (mode === "split" && sourceDriven === true) {
+      if (updateActiveTOCFromSource()) {
+        return;
+      }
+    }
+    var origin = 0;
+    if (mode === "split") {
+      var pane = renderedPane();
+      if (pane) {
+        origin = pane.getBoundingClientRect().top;
+      }
     }
     var current = activeHeadings[0].id;
     for (var i = 0; i < activeHeadings.length; i++) {
-      var top = activeHeadings[i].getBoundingClientRect().top;
+      var top = activeHeadings[i].getBoundingClientRect().top - origin;
       if (top <= 130) {
         current = activeHeadings[i].id;
       } else {
         break;
       }
     }
-    var links = toc.querySelectorAll(".toc-link");
-    for (var j = 0; j < links.length; j++) {
-      links[j].classList.toggle("active", links[j].getAttribute("data-toc-id") === current);
-    }
+    setActiveTOC(current);
   }
 
   function activateTab(name) {
@@ -634,6 +767,79 @@
     html.style.scrollBehavior = "auto";
     window.scrollTo(0, top);
     html.style.scrollBehavior = previous;
+  }
+
+  function tocLine(link) {
+    var line = link ? parseInt(link.getAttribute("data-toc-line"), 10) : NaN;
+    return isNaN(line) ? null : line;
+  }
+
+  function scrollRenderedToTarget(section, target) {
+    if (!target) {
+      return;
+    }
+    if (currentMode() === "split") {
+      var pane = section.querySelector(".doc-rendered");
+      if (!pane) {
+        return;
+      }
+      var top =
+        target.getBoundingClientRect().top -
+        pane.getBoundingClientRect().top +
+        pane.scrollTop -
+        24;
+      setElementTop(pane, top);
+      markPendingSync(pane);
+      return;
+    }
+    scrollWindowTo(target.getBoundingClientRect().top + window.pageYOffset - 72);
+  }
+
+  function scrollSourceToLine(section, line, offset) {
+    if (line === null) {
+      return false;
+    }
+    var contentTop = sourceTopForLine(section, line);
+    if (contentTop === null) {
+      return false;
+    }
+    var pane = sourceViewFor(section);
+    if (!pane) {
+      return false;
+    }
+    if (currentMode() === "split") {
+      setElementTop(pane, contentTop - offset);
+      markPendingSync(pane);
+      return true;
+    }
+    if (currentMode() === "source") {
+      scrollWindowTo(pane.getBoundingClientRect().top + window.pageYOffset + contentTop - offset);
+      return true;
+    }
+    return false;
+  }
+
+  function navigateOutline(link) {
+    var anchor = link.getAttribute("data-toc-id");
+    var section = currentSection();
+    if (!anchor || !section) {
+      return;
+    }
+    var target = document.getElementById(anchor);
+    if (!target) {
+      return;
+    }
+    var mode = currentMode();
+    if (mode === "source") {
+      scrollSourceToLine(section, tocLine(link), 72);
+      setActiveTOC(anchor);
+      return;
+    }
+    scrollRenderedToTarget(section, target);
+    if (mode === "split") {
+      scrollSourceToLine(section, tocLine(link), 24);
+    }
+    setActiveTOC(anchor);
   }
 
   function showDoc(docID, anchor, updateHash, preserveScroll) {
@@ -1454,12 +1660,15 @@
   if (toc) {
     toc.addEventListener("click", function (event) {
       var target = event.target;
-      if (!target || !target.closest || !target.closest(".toc-link")) {
+      var link = target && target.closest ? target.closest(".toc-link") : null;
+      if (!link) {
         return;
       }
-      if (currentMode() === "source") {
-        applyMode("render", true);
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+        return;
       }
+      event.preventDefault();
+      navigateOutline(link);
       closeMobileSidebar();
     });
   }
@@ -1621,6 +1830,7 @@
         return;
       }
       syncPanes(target, section.querySelector(".doc-rendered"));
+      updateActiveTOC(true);
     } else {
       return;
     }

@@ -26,6 +26,9 @@ type Heading struct {
 	Level int
 	Text  string
 	ID    string
+	// Line is the zero-based line in the original source file, including any
+	// BOM and front matter that are stripped before Markdown parsing.
+	Line int
 }
 
 type Document struct {
@@ -228,8 +231,15 @@ func stripFenceIndent(line, indent string) string {
 }
 
 func RenderMarkdown(source []byte, sourcePath string, opts RenderOptions) (*Document, error) {
-	source = bytes.TrimPrefix(source, []byte("\xef\xbb\xbf"))
-	source = stripFrontMatter(source)
+	rawSource := source
+	strippedPrefix := 0
+	if bom := []byte("\xef\xbb\xbf"); bytes.HasPrefix(source, bom) {
+		strippedPrefix = len(bom)
+		source = source[len(bom):]
+	}
+	withoutFrontMatter := stripFrontMatter(source)
+	strippedPrefix += len(source) - len(withoutFrontMatter)
+	source = withoutFrontMatter
 	md := newMarkdown(opts.CurrentDocID)
 	docNode := md.Parser().Parse(text.NewReader(source))
 
@@ -258,7 +268,15 @@ func RenderMarkdown(source []byte, sourcePath string, opts RenderOptions) (*Docu
 		}
 		heading.SetAttributeString("id", []byte(id))
 		if heading.Level <= 3 {
-			headings = append(headings, Heading{Level: heading.Level, Text: textValue, ID: id})
+			line := 0
+			if lines := heading.Lines(); lines.Len() > 0 {
+				offset := strippedPrefix + lines.At(0).Start
+				if offset > len(rawSource) {
+					offset = len(rawSource)
+				}
+				line = bytes.Count(rawSource[:offset], []byte("\n"))
+			}
+			headings = append(headings, Heading{Level: heading.Level, Text: textValue, ID: id, Line: line})
 		}
 		return ast.WalkContinue, nil
 	})

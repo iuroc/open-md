@@ -29,6 +29,36 @@ func TestRenderMarkdownGFMAndTOC(t *testing.T) {
 	}
 }
 
+func TestTOCHeadingLinesUseOriginalSource(t *testing.T) {
+	tests := []struct {
+		name string
+		src  string
+		want []int
+	}{
+		{"plain", "# A\n\n## B\n", []int{0, 2}},
+		{"yaml front matter", "---\ntitle: Hi\n---\n\n# A\n\n## B\n", []int{4, 6}},
+		{"toml front matter", "+++\ntitle = \"Hi\"\n+++\n# A\n", []int{3}},
+		{"bom", "\xef\xbb\xbf# A\n\n## B\n", []int{0, 2}},
+		{"bom and front matter", "\xef\xbb\xbf---\ntitle: Hi\n---\n\n# A\n", []int{4}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			doc, err := RenderMarkdown([]byte(test.src), `C:\docs\note.md`, RenderOptions{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(doc.TOC) != len(test.want) {
+				t.Fatalf("toc len = %d, want %d", len(doc.TOC), len(test.want))
+			}
+			for i, want := range test.want {
+				if doc.TOC[i].Line != want {
+					t.Fatalf("toc[%d].Line = %d, want %d", i, doc.TOC[i].Line, want)
+				}
+			}
+		})
+	}
+}
+
 func TestRenderMarkdownTOCOnlyIncludesLevelsOneToThree(t *testing.T) {
 	doc, err := RenderMarkdown([]byte("# One\n\n## Two\n\n### Three\n\n#### Four\n"), "note.md", RenderOptions{})
 	if err != nil {

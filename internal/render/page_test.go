@@ -230,7 +230,7 @@ func TestRenderPageContainsEmbeddedUIAndCSP(t *testing.T) {
 			ID:    "doc-0",
 			Title: "T",
 			HTML:  template.HTML("<p>hi</p>"),
-			TOC:   []Heading{{Level: 1, Text: "T", ID: "doc-0-t"}},
+			TOC:   []Heading{{Level: 1, Text: "T", ID: "doc-0-t", Line: 4}},
 		}},
 	}
 	out, err := RenderPage(page)
@@ -238,7 +238,7 @@ func TestRenderPageContainsEmbeddedUIAndCSP(t *testing.T) {
 		t.Fatal(err)
 	}
 	s := string(out)
-	for _, want := range []string{"<!doctype html>", "Content-Security-Policy", "<style>", "<script>", `data-doc-id="doc-0"`, `class="toc-template"`, `id="menu-toggle"`, `id="width-toggle"`, `id="settings-button"`, `id="settings-panel"`} {
+	for _, want := range []string{"<!doctype html>", "Content-Security-Policy", "<style>", "<script>", `data-doc-id="doc-0"`, `class="toc-template"`, `data-toc-line="4"`, `id="menu-toggle"`, `id="width-toggle"`, `id="settings-button"`, `id="settings-panel"`} {
 		if !strings.Contains(s, want) {
 			t.Fatalf("missing %q", want)
 		}
