@@ -133,6 +133,31 @@ func TestManualRelativeLinksResolve(t *testing.T) {
 	}
 }
 
+var imageSyntax = regexp.MustCompile(`!\[[^\]]*\]\(([^)\s]+)\)`)
+
+func TestManualProseImagesExist(t *testing.T) {
+	fsys, err := contentFS()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range append([]string{"index.md"}, chapterFiles...) {
+		data, err := fs.ReadFile(fsys, name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, match := range imageSyntax.FindAllStringSubmatch(prose(string(data)), -1) {
+			target := match[1]
+			if strings.HasPrefix(target, "http://") || strings.HasPrefix(target, "https://") || strings.HasPrefix(target, "data:") || strings.HasPrefix(target, "#") {
+				continue
+			}
+			resolved := path.Clean(path.Join(path.Dir(name), target))
+			if _, err := fs.Stat(fsys, resolved); err != nil {
+				t.Fatalf("%s renders a missing image: %s", name, resolved)
+			}
+		}
+	}
+}
+
 func TestManualHasNoRemoteImages(t *testing.T) {
 	fsys, err := contentFS()
 	if err != nil {
