@@ -166,6 +166,61 @@ html[data-theme="paper"] .doc-section.markdown-body {
   }
 }
 
+/* Scrollbar colors derive from the active theme so every palette stays
+   coherent without per-theme overrides. */
+:root {
+  --scrollbar-thumb: rgba(100, 116, 139, 0.42);
+  --scrollbar-thumb-hover: rgba(100, 116, 139, 0.62);
+  --scrollbar-track: transparent;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --scrollbar-thumb: rgba(147, 164, 184, 0.42);
+    --scrollbar-thumb-hover: rgba(147, 164, 184, 0.62);
+  }
+}
+
+@supports (color: color-mix(in srgb, red, blue)) {
+  :root {
+    --scrollbar-thumb: color-mix(in srgb, var(--fg-muted) 42%, transparent);
+    --scrollbar-thumb-hover: color-mix(in srgb, var(--fg-muted) 62%, transparent);
+  }
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+*::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background-color: var(--scrollbar-thumb);
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Firefox has no WebKit scrollbar pseudo-elements; standard properties are
+   scoped to it so Chromium keeps the rounded thumb and hover treatment. */
+@supports (-moz-appearance: none) {
+  html {
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+    scrollbar-width: thin;
+  }
+}
+
 * {
   box-sizing: border-box;
 }
@@ -1348,6 +1403,7 @@ html.openmd-hash-load #doc-content {
   margin: 0 auto;
   padding: 0;
   background: transparent;
+  font-size: var(--reader-font-size, 16px);
   font-family: var(--reader-font, var(--font-body));
   letter-spacing: var(--reader-letter-spacing, 0);
   --fgColor-accent: var(--accent);
@@ -1359,6 +1415,14 @@ html.openmd-hash-load #doc-content {
 .doc-section.markdown-body samp {
   font-family: var(--font-mono);
   letter-spacing: normal;
+}
+
+/* GitHub Markdown CSS pins these to 12px; scale them with the reader font
+   size while keeping the 12px default at 16px. */
+.doc-section.markdown-body .footnotes,
+.doc-section.markdown-body .csv-data td,
+.doc-section.markdown-body .csv-data th {
+  font-size: 0.75em;
 }
 
 .markdown-body table th {
@@ -1455,7 +1519,7 @@ body.source-mode .doc-section .source-view {
   background-color: transparent;
   color: var(--fg);
   font-family: var(--font-mono);
-  font-size: 1rem;
+  font-size: var(--reader-font-size, 1rem);
   line-height: 1.5;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -1475,7 +1539,7 @@ body.source-mode .doc-section .source-view {
   border-radius: 0;
   background: transparent;
   color: var(--fg-muted);
-  font-size: 1rem;
+  font-size: var(--reader-font-size, 1rem);
 }
 
 body.split-mode {

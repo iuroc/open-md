@@ -574,6 +574,79 @@ func TestReaderTypographyCSS(t *testing.T) {
 	}
 }
 
+func TestReaderFontSizeCSS(t *testing.T) {
+	body := readerCSSRule(t, "\n.doc-section.markdown-body {")
+	if !strings.Contains(body, "font-size: var(--reader-font-size, 16px);") {
+		t.Fatalf("markdown body font size missing: %s", body)
+	}
+	scaled := readerCSSRule(t, ".doc-section.markdown-body .footnotes,")
+	if !strings.Contains(scaled, "font-size: 0.75em;") {
+		t.Fatalf("footnotes and csv tables must scale with content size: %s", scaled)
+	}
+	source := readerCSSRule(t, ".doc-section .source-code.chroma {")
+	if !strings.Contains(source, "font-size: var(--reader-font-size, 1rem);") {
+		t.Fatalf("source view must follow the content font size: %s", source)
+	}
+	empty := readerCSSRule(t, ".source-empty {")
+	if !strings.Contains(empty, "font-size: var(--reader-font-size, 1rem);") {
+		t.Fatalf("empty source message must follow the content font size: %s", empty)
+	}
+}
+
+func TestReaderJSFontSizePresets(t *testing.T) {
+	for _, want := range []string{
+		"var readerSizes = {",
+		`"14": "14px"`,
+		`"16": ""`,
+		`"18": "18px"`,
+		`"20": "20px"`,
+		"--reader-font-size",
+		"openmd-reader-size",
+		`applyReaderSize(readPref("openmd-reader-size"), false);`,
+	} {
+		if !strings.Contains(readerJS, want) {
+			t.Fatalf("reader.js missing %q", want)
+		}
+	}
+}
+
+func TestThemedScrollbars(t *testing.T) {
+	for _, want := range []string{
+		"--scrollbar-thumb: rgba(100, 116, 139, 0.42);",
+		"--scrollbar-thumb-hover: rgba(100, 116, 139, 0.62);",
+		"--scrollbar-track: transparent;",
+		"@supports (color: color-mix(in srgb, red, blue))",
+		"--scrollbar-thumb: color-mix(in srgb, var(--fg-muted) 42%, transparent);",
+		"--scrollbar-thumb-hover: color-mix(in srgb, var(--fg-muted) 62%, transparent);",
+		"*::-webkit-scrollbar-thumb:hover {",
+		"@supports (-moz-appearance: none)",
+		"scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);",
+		"scrollbar-width: thin;",
+	} {
+		if !strings.Contains(readerCSS, want) {
+			t.Fatalf("reader.css missing %q", want)
+		}
+	}
+	bar := readerCSSRule(t, "*::-webkit-scrollbar {")
+	if !strings.Contains(bar, "width: 10px;") || !strings.Contains(bar, "height: 10px;") {
+		t.Fatalf("scrollbar size missing: %s", bar)
+	}
+	thumb := readerCSSRule(t, "*::-webkit-scrollbar-thumb {")
+	for _, want := range []string{
+		"border-radius: 8px;",
+		"background-color: var(--scrollbar-thumb);",
+		"background-clip: padding-box;",
+	} {
+		if !strings.Contains(thumb, want) {
+			t.Fatalf("scrollbar thumb missing %q: %s", want, thumb)
+		}
+	}
+	hidden := readerCSSRule(t, "body.split-mode .doc-section .source-view::-webkit-scrollbar {")
+	if !strings.Contains(hidden, "display: none;") {
+		t.Fatalf("split source scrollbar must stay hidden: %s", hidden)
+	}
+}
+
 func TestReaderJSTypographyPresets(t *testing.T) {
 	for _, want := range []string{
 		"var readerFonts = {",
@@ -603,11 +676,16 @@ func TestReaderSettingsGroups(t *testing.T) {
 		`data-reader-font="song"`,
 		`data-reader-font="kai"`,
 		`data-reader-font="fang"`,
+		`data-reader-size="14"`,
+		`data-reader-size="16"`,
+		`data-reader-size="18"`,
+		`data-reader-size="20"`,
 		`data-reader-spacing="0"`,
 		`data-reader-spacing="0.03"`,
 		`data-reader-spacing="0.06"`,
 		`data-reader-spacing="0.1"`,
 		">字体<",
+		">字号<",
 		">字间距<",
 	}
 	for name, source := range map[string]string{
@@ -668,8 +746,10 @@ func TestReaderSettingsGroups(t *testing.T) {
 func TestReaderJSTypographyWiring(t *testing.T) {
 	for _, want := range []string{
 		`querySelectorAll("[data-reader-font]")`,
+		`querySelectorAll("[data-reader-size]")`,
 		`querySelectorAll("[data-reader-spacing]")`,
 		`applyReaderFont(this.getAttribute("data-reader-font"), true)`,
+		`applyReaderSize(this.getAttribute("data-reader-size"), true)`,
 		`applyReaderSpacing(this.getAttribute("data-reader-spacing"), true)`,
 	} {
 		if !strings.Contains(readerJS, want) {
@@ -1125,7 +1205,7 @@ func TestReaderCSSSourceUsesBodyFontSize(t *testing.T) {
 		t.Fatal("source code rule has no closing brace")
 	}
 	rule := readerCSS[start : start+end]
-	for _, want := range []string{"font-size: 1rem;", "line-height: 1.5;"} {
+	for _, want := range []string{"font-size: var(--reader-font-size, 1rem);", "line-height: 1.5;"} {
 		if !strings.Contains(rule, want) {
 			t.Fatalf("source code rule missing %q: %s", want, rule)
 		}
