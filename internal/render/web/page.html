@@ -234,6 +234,9 @@
                 <div><dt>版本</dt><dd>{{.VersionLabel}}</dd></div>
                 <div><dt>构建时间</dt><dd>{{.BuildTime}}</dd></div>
               </dl>
+              {{if .ManualURL}}
+              <a class="manual-link panel-action" href="{{.ManualURL}}" target="_blank" rel="noopener noreferrer">打开使用手册</a>
+              {{end}}
               {{if .ReleaseAvailable}}
               <p class="about-hint">最新版本的构建时间晚于当前构建时间时，说明有更新。</p>
               <a class="release-link panel-action" href="{{.ReleaseURL}}" target="_blank" rel="noopener noreferrer">打开发布页</a>

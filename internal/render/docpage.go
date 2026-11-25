@@ -30,6 +30,7 @@ type DocPageData struct {
 	AuthorURL        string
 	ReleaseAvailable bool
 	ReleaseURL       string
+	ManualURL        template.URL
 	Favicon          template.URL
 }
 

@@ -1597,3 +1597,49 @@ func TestRenderPageShowsPlainAuthorWhenNoIDOrURL(t *testing.T) {
 		t.Fatal("author line must contain the plain author name")
 	}
 }
+
+func TestDocPageShowsManualLink(t *testing.T) {
+	out, err := RenderDocPage(DocPageData{
+		Title:     "A",
+		ManualURL: "file:///C:/manual/doc-x.html",
+		Doc:       Document{Title: "A", ID: "doc"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		`href="file:///C:/manual/doc-x.html"`,
+		`target="_blank"`,
+		`rel="noopener noreferrer"`,
+		"打开使用手册",
+	} {
+		if !strings.Contains(string(out), want) {
+			t.Fatalf("manual link missing %q", want)
+		}
+	}
+}
+
+func TestDocPageHidesManualLinkWithoutURL(t *testing.T) {
+	out, err := RenderDocPage(DocPageData{Title: "A", Doc: Document{Title: "A", ID: "doc"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(out), "打开使用手册") {
+		t.Fatal("manual link must be hidden without a URL")
+	}
+}
+
+func TestRenderPageShowsManualLink(t *testing.T) {
+	out, err := RenderPage(&Page{
+		Mode:      "file",
+		Title:     "A",
+		ManualURL: "file:///C:/manual/doc-x.html",
+		Documents: []Document{{ID: "doc-0", Title: "A"}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(out), "打开使用手册") {
+		t.Fatal("legacy page template must show the manual link too")
+	}
+}

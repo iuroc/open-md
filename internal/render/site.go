@@ -32,7 +32,7 @@ const (
 // cacheGeneration invalidates cached pages when templates or shared assets
 // change in ways a version label cannot capture, such as dev builds that all
 // share the 开发版 label.
-const cacheGeneration = "2026-11-25-sidebar-tab-persistence"
+const cacheGeneration = "2026-11-25-builtin-manual"
 
 func cacheVersion(version string) string {
 	return version + "+" + cacheGeneration
@@ -62,6 +62,7 @@ type SiteOptions struct {
 	Confirm            func(Estimate) LoadChoice
 	FullThresholdDocs  int
 	FullThresholdBytes int64
+	ManualURL          string
 }
 
 func (o SiteOptions) thresholdDocs() int {
@@ -111,6 +112,7 @@ type siteManifest struct {
 	Version   string            `json:"version"`
 	KnownHash string            `json:"knownHash"`
 	Root      string            `json:"root"`
+	ManualURL string            `json:"manualURL,omitempty"`
 	Docs      []siteManifestDoc `json:"docs"`
 }
 
@@ -222,7 +224,7 @@ func BuildDirSite(dirPath string, opts SiteOptions) (*Site, error) {
 		knownDocs[pathKey(doc.Path)] = doc.Href
 	}
 	knownHash := knownSetHash(all)
-	rebuildAll := !opts.AllowCache || manifest.Version != opts.Version || manifest.KnownHash != knownHash || manifest.Root != abs
+	rebuildAll := !opts.AllowCache || manifest.Version != opts.Version || manifest.KnownHash != knownHash || manifest.Root != abs || manifest.ManualURL != opts.ManualURL
 	if rebuildAll {
 		for _, doc := range all {
 			doc.NeedRender = true
@@ -231,7 +233,7 @@ func BuildDirSite(dirPath string, opts SiteOptions) (*Site, error) {
 
 	hasFilesPanel := true
 	site := &Site{Warnings: warnings, Pages: len(all)}
-	if err := renderDocs(cacheDir, "dir", rootKey, all, knownDocs, hasFilesPanel); err != nil {
+	if err := renderDocs(cacheDir, "dir", rootKey, all, knownDocs, hasFilesPanel, opts.ManualURL); err != nil {
 		return nil, err
 	}
 
@@ -250,7 +252,7 @@ func BuildDirSite(dirPath string, opts SiteOptions) (*Site, error) {
 	if err := writeAssets(cacheDir); err != nil {
 		return nil, err
 	}
-	if err := writeManifest(cacheDir, manifestFor(opts.Version, knownHash, abs, all)); err != nil {
+	if err := writeManifest(cacheDir, manifestFor(opts.Version, knownHash, abs, opts.ManualURL, all)); err != nil {
 		return nil, err
 	}
 	touchDir(cacheDir)
@@ -327,14 +329,14 @@ func BuildFileSite(filePath string, opts SiteOptions) (*Site, error) {
 		knownDocs[pathKey(doc.Path)] = doc.Href
 	}
 	knownHash := knownSetHash(all)
-	rebuildAll := !opts.AllowCache || manifest.Version != opts.Version || manifest.KnownHash != knownHash || manifest.Root != abs
+	rebuildAll := !opts.AllowCache || manifest.Version != opts.Version || manifest.KnownHash != knownHash || manifest.Root != abs || manifest.ManualURL != opts.ManualURL
 	if rebuildAll {
 		for _, doc := range all {
 			doc.NeedRender = true
 		}
 	}
 	hasFilesPanel := len(linked) > 0
-	if err := renderDocs(cacheDir, "file", rootKey, all, knownDocs, hasFilesPanel); err != nil {
+	if err := renderDocs(cacheDir, "file", rootKey, all, knownDocs, hasFilesPanel, opts.ManualURL); err != nil {
 		return nil, err
 	}
 	linkedDocs := make([]Document, 0, len(linked))
@@ -348,7 +350,7 @@ func BuildFileSite(filePath string, opts SiteOptions) (*Site, error) {
 	if err := writeAssets(cacheDir); err != nil {
 		return nil, err
 	}
-	if err := writeManifest(cacheDir, manifestFor(opts.Version, knownHash, abs, all)); err != nil {
+	if err := writeManifest(cacheDir, manifestFor(opts.Version, knownHash, abs, opts.ManualURL, all)); err != nil {
 		return nil, err
 	}
 	touchDir(cacheDir)
@@ -468,7 +470,7 @@ func extractMarkdownLinks(source []byte, baseDir string) []siteLink {
 	return links
 }
 
-func renderDocs(cacheDir, mode, rootKey string, docs []*siteDoc, knownDocs map[string]string, hasFilesPanel bool) error {
+func renderDocs(cacheDir, mode, rootKey string, docs []*siteDoc, knownDocs map[string]string, hasFilesPanel bool, manualURL string) error {
 	jobs := make(chan *siteDoc)
 	workers := runtime.NumCPU()
 	if workers < 1 {
@@ -488,7 +490,7 @@ func renderDocs(cacheDir, mode, rootKey string, docs []*siteDoc, knownDocs map[s
 				if !doc.NeedRender {
 					continue
 				}
-				if err := renderOneDoc(cacheDir, mode, rootKey, doc, knownDocs, hasFilesPanel); err != nil {
+				if err := renderOneDoc(cacheDir, mode, rootKey, doc, knownDocs, hasFilesPanel, manualURL); err != nil {
 					mu.Lock()
 					if firstErr == nil {
 						firstErr = err
@@ -506,7 +508,7 @@ func renderDocs(cacheDir, mode, rootKey string, docs []*siteDoc, knownDocs map[s
 	return firstErr
 }
 
-func renderOneDoc(cacheDir, mode, rootKey string, doc *siteDoc, knownDocs map[string]string, hasFilesPanel bool) error {
+func renderOneDoc(cacheDir, mode, rootKey string, doc *siteDoc, knownDocs map[string]string, hasFilesPanel bool, manualURL string) error {
 	if doc.Source == nil && doc.ReadErr == nil {
 		doc.Source, doc.ReadErr = os.ReadFile(doc.Path)
 	}
@@ -554,6 +556,7 @@ func renderOneDoc(cacheDir, mode, rootKey string, doc *siteDoc, knownDocs map[st
 		Payload:       docPayloadHref(doc.Href),
 		InlineSection: doc.Inline,
 		HasFilesPanel: hasFilesPanel,
+		ManualURL:     template.URL(manualURL),
 		Doc:           document,
 	}
 	html, err := RenderDocPage(data)
@@ -621,8 +624,8 @@ func knownSetHash(docs []*siteDoc) string {
 	return hex.EncodeToString(sum[:])
 }
 
-func manifestFor(version, knownHash, root string, docs []*siteDoc) siteManifest {
-	m := siteManifest{Version: version, KnownHash: knownHash, Root: root}
+func manifestFor(version, knownHash, root, manualURL string, docs []*siteDoc) siteManifest {
+	m := siteManifest{Version: version, KnownHash: knownHash, Root: root, ManualURL: manualURL}
 	for _, doc := range docs {
 		m.Docs = append(m.Docs, siteManifestDoc{
 			Path:    doc.Path,
@@ -679,10 +682,10 @@ func writeTreeJS(cacheDir, navHTML string) error {
 func writeAssets(cacheDir string) error {
 	light, dark := HighlightCSS()
 	assets := map[string]string{
-		"reader.css":          readerCSS,
-		"markdown.css":        githubMarkdownCSS,
-		"chroma.css":          light + "\n" + dark,
-		"reader.js":           readerJS,
+		"reader.css":   readerCSS,
+		"markdown.css": githubMarkdownCSS,
+		"chroma.css":   light + "\n" + dark,
+		"reader.js":    readerJS,
 	}
 	for name, content := range assets {
 		if err := writeAtomic(filepath.Join(cacheDir, name), []byte(content)); err != nil {

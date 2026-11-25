@@ -1106,6 +1106,10 @@ a:hover {
   margin-top: 10px;
 }
 
+.manual-link {
+  margin: 10px 8px 0 0;
+}
+
 
 .settings-panel {
   position: absolute;

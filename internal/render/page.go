@@ -23,6 +23,7 @@ type Page struct {
 	Documents []Document
 	Tree      []*TreeNode
 	Warnings  []string
+	ManualURL string
 }
 
 //go:embed web/page.html
@@ -61,6 +62,7 @@ type pageData struct {
 	AuthorURL        string
 	ReleaseAvailable bool
 	ReleaseURL       string
+	ManualURL        template.URL
 	Favicon          template.URL
 	CSS              template.CSS
 	MarkdownCSS      template.CSS
@@ -152,6 +154,7 @@ func RenderPage(page *Page) ([]byte, error) {
 		AuthorURL:        buildinfo.AuthorURL,
 		ReleaseAvailable: buildinfo.IsReleaseBuild(),
 		ReleaseURL:       buildinfo.ReleaseURL,
+		ManualURL:        template.URL(page.ManualURL),
 		Favicon:          template.URL("data:image/png;base64," + base64.StdEncoding.EncodeToString(faviconPNG)),
 		CSS:              template.CSS(readerCSS),
 		MarkdownCSS:      template.CSS(githubMarkdownCSS),

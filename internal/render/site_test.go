@@ -403,3 +403,33 @@ func TestBuildFileSiteRebuildsCacheFromOlderRenderGeneration(t *testing.T) {
 		t.Fatal("cache from an older render generation must be rebuilt")
 	}
 }
+
+func TestBuildFileSiteRebuildsWhenManualURLChanges(t *testing.T) {
+	dir := t.TempDir()
+	md := filepath.Join(dir, "note.md")
+	if err := os.WriteFile(md, []byte("# Note\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	cache := t.TempDir()
+	opts := SiteOptions{CacheBase: cache, Version: "v1", AllowCache: true, ManualURL: "file:///C:/manual/a.html"}
+	first, err := BuildFileSite(md, opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	page, _ := os.ReadFile(first.InitialPage)
+	if !strings.Contains(string(page), "file:///C:/manual/a.html") {
+		t.Fatal("first manual URL missing")
+	}
+	opts.ManualURL = "file:///C:/manual/b.html"
+	second, err := BuildFileSite(md, opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	page, _ = os.ReadFile(second.InitialPage)
+	if !strings.Contains(string(page), "file:///C:/manual/b.html") || strings.Contains(string(page), "file:///C:/manual/a.html") {
+		t.Fatal("cached page kept the old manual URL")
+	}
+	if second.Generated == 0 {
+		t.Fatal("changing the manual URL must regenerate pages")
+	}
+}
