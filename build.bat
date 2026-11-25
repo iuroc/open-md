@@ -31,14 +31,4 @@ if errorlevel 1 (
 echo.
 echo Build complete: %CD%\OpenMD.exe
 
-set "TARGET=%~1"
-if not defined TARGET (
-    set /p "TARGET=Open a file or folder after build? (path, Enter to skip): "
-)
-if defined TARGET (
-    echo Opening: %TARGET%
-    start "" "%CD%\OpenMD.exe" "%TARGET%"
-) else (
-    echo Tip: drag a Markdown file or folder onto OpenMD.exe to open it.
-)
 pause
