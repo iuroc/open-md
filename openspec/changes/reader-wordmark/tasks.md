@@ -2,12 +2,12 @@
 
 ## 1. 模板字标
 
-- [ ] 1.1 在 `docpage.html` 的侧栏标题和 `settings-title` 位置加入 `.brand` 标记（内联 SVG M + `Open`/`MD` 文本），验证 `RenderDocPage` 输出包含 `brand-mark`、`Open`、`MD`，且原来两处 `<span>OpenMD</span>` 已被替换
-- [ ] 1.2 在 `page.html` 同步相同的字标标记，验证 `RenderPage` 输出与文档页一致
+- [x] 1.1 在 `docpage.html` 的侧栏标题和 `settings-title` 位置加入 `.brand` 标记（内联 SVG M + `Open`/`MD` 文本），验证 `RenderDocPage` 输出包含 `brand-mark`、`Open`、`MD`，且原来两处 `<span>OpenMD</span>` 已被替换
+- [x] 1.2 在 `page.html` 同步相同的字标标记，验证 `RenderPage` 输出与文档页一致
 
 ## 2. 字标样式
 
-- [ ] 2.1 在 `reader.css` 添加 `.brand`、`.brand-mark`、`.brand-wordmark`、`.brand-open`、`.brand-md` 样式，验证渲染结果的 computed style：文字使用衬线栈、M 使用 `var(--accent)`、文字使用 `var(--fg)`，字号分别继承 18px 和 14px
+- [x] 2.1 在 `reader.css` 添加 `.brand`、`.brand-mark`、`.brand-wordmark`、`.brand-open`、`.brand-md` 样式，验证渲染结果的 computed style：文字使用衬线栈、M 使用 `var(--accent)`、文字使用 `var(--fg)`，字号分别继承 18px 和 14px
 - [ ] 2.2 确认 `.sidebar-header` 与 `.settings-title` 在 14px/18px 下不被关闭按钮挤压、不裁切，并用 290px 侧栏和窄视口截图检查
 
 ## 3. 测试与视觉检查

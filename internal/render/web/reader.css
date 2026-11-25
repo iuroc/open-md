@@ -226,6 +226,36 @@ a:hover {
   display: none;
 }
 
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42em;
+  min-width: 0;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.brand-mark {
+  width: 1em;
+  height: 1em;
+  flex: none;
+  color: var(--accent);
+}
+
+.brand-wordmark {
+  font-family: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, "Songti SC", SimSun, serif;
+  letter-spacing: 0.005em;
+}
+
+.brand-open {
+  font-weight: 400;
+}
+
+.brand-md {
+  font-weight: 700;
+  margin-left: 0.02em;
+}
+
 .sidebar-scroll {
   flex: 1;
   overflow: auto;

@@ -61,7 +61,7 @@ func TestRenderPageInfoPanelUsesTabs(t *testing.T) {
 	}
 	s := string(out)
 	for _, want := range []string{
-		`class="settings-title">OpenMD</span>`,
+		`class="brand settings-title"`,
 		`class="settings-tabs" role="tablist" aria-label="信息与设置分类"`,
 		`id="settings-tab-button-file" data-settings-tab="file" role="tab" aria-selected="true" aria-controls="settings-panel-file" tabindex="0">文件</button>`,
 		`id="settings-tab-button-settings" data-settings-tab="settings" role="tab" aria-selected="false" aria-controls="settings-panel-settings" tabindex="-1">设置</button>`,
