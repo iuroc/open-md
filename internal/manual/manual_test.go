@@ -87,6 +87,65 @@ func TestEnsureBuildsManualSite(t *testing.T) {
 	}
 }
 
+func TestEnsureReturnsAbsoluteURLForRelativeBase(t *testing.T) {
+	dir := t.TempDir()
+	t.Chdir(dir)
+	res, err := ensure(".", testContent(), time.Now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(res.URL, "file:///") {
+		t.Fatalf("manual URL must be absolute: %q", res.URL)
+	}
+	cur, ok := readCurrent(filepath.Join(dir, "manual"))
+	if !ok || !filepath.IsAbs(cur.InitialPage) {
+		t.Fatalf("initial page must be absolute: %#v", cur)
+	}
+}
+
+func TestEnsureHealsRelativeCurrentMarker(t *testing.T) {
+	base, err := os.MkdirTemp(".", ".manual-test-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(base)
+	base, err = filepath.Abs(base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ensure(base, testContent(), time.Now); err != nil {
+		t.Fatal(err)
+	}
+	manualDir := filepath.Join(base, "manual")
+	cur, ok := readCurrent(manualDir)
+	if !ok {
+		t.Fatal("current marker missing")
+	}
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rel, err := filepath.Rel(cwd, cur.InitialPage)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cur.InitialPage = rel
+	if err := writeCurrent(manualDir, cur); err != nil {
+		t.Fatal(err)
+	}
+	res, err := ensure(base, testContent(), time.Now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(res.URL, "file:///.") {
+		t.Fatalf("manual URL still relative: %q", res.URL)
+	}
+	cur, ok = readCurrent(manualDir)
+	if !ok || !filepath.IsAbs(cur.InitialPage) {
+		t.Fatalf("relative marker was not healed: %#v", cur)
+	}
+}
+
 func TestEnsureReusesCurrentManual(t *testing.T) {
 	base := t.TempDir()
 	first, err := ensure(base, testContent(), time.Now)

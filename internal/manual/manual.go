@@ -119,6 +119,10 @@ func ensure(baseDir string, fsys fs.FS, now func() time.Time) (Result, error) {
 	if err != nil {
 		return Result{}, err
 	}
+	baseDir, err = filepath.Abs(baseDir)
+	if err != nil {
+		return Result{}, err
+	}
 	manualDir := filepath.Join(baseDir, "manual")
 	if err := os.MkdirAll(manualDir, 0755); err != nil {
 		return Result{}, err
@@ -161,7 +165,7 @@ func ensure(baseDir string, fsys fs.FS, now func() time.Time) (Result, error) {
 
 func currentResult(manualDir, fp string) (Result, bool) {
 	cur, ok := readCurrent(manualDir)
-	if !ok || cur.Fingerprint != fp || !fileExists(cur.InitialPage) {
+	if !ok || cur.Fingerprint != fp || !filepath.IsAbs(cur.InitialPage) || !fileExists(cur.InitialPage) {
 		return Result{}, false
 	}
 	return Result{URL: render.FileURL(cur.InitialPage), Fingerprint: fp}, true

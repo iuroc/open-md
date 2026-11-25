@@ -76,6 +76,17 @@ go run ./tools/cases -big   # 追加大小上限用例（约 100 MB）
 
 同一源文件始终使用同一个输出路径，内容变化时原子覆盖。源文件、版本和文档集合未变化时直接复用已有页面。不会写到 Markdown 文件所在目录。旧缓存按 7 天 / 最近 50 个 root 清理。
 
+内置使用手册另外写入：
+
+```text
+%LOCALAPPDATA%\Programs\OpenMD\openmd-temp\manual\
+  current.json
+  src-<content-hash>\
+  cache\<root-hash>\
+```
+
+`current.json` 记录当前生效的内容指纹和手册首页；内容指纹变化时生成新的 `src-<content-hash>`。旧 `src-*` 和 cache root 超过 24 小时后清理。
+
 如果安装目录不可写，会回退到 `%TEMP%\OpenMD`。
 
 ## 图标
