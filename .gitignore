@@ -1,5 +1,4 @@
 *.exe
 source.git.bundle
 /cases/
-/build.bat
 /bundle.bat
