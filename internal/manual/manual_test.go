@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 	"testing/fstest"
+	"time"
 )
 
 func TestFingerprintChangesWithContent(t *testing.T) {
@@ -57,5 +58,141 @@ func TestExtractReplacesIncompleteDirectory(t *testing.T) {
 	}
 	if !complete(dst) {
 		t.Fatal("missing .complete marker")
+	}
+}
+
+func testContent() fstest.MapFS {
+	return fstest.MapFS{
+		"index.md": {Data: []byte("# 测试手册\n\n[第二章](02.md)\n")},
+		"02.md":    {Data: []byte("# 第二章\n")},
+	}
+}
+
+func TestEnsureBuildsManualSite(t *testing.T) {
+	base := t.TempDir()
+	res, err := ensure(base, testContent(), time.Now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Fingerprint == "" || !strings.HasPrefix(res.URL, "file:///") {
+		t.Fatalf("bad result: %#v", res)
+	}
+	cur, ok := readCurrent(filepath.Join(base, "manual"))
+	if !ok || cur.Fingerprint != res.Fingerprint || !fileExists(cur.InitialPage) {
+		t.Fatalf("current marker not usable: %#v", cur)
+	}
+	data, _ := os.ReadFile(cur.InitialPage)
+	if !strings.Contains(string(data), "测试手册") {
+		t.Fatalf("rendered manual missing title: %q", data)
+	}
+}
+
+func TestEnsureReusesCurrentManual(t *testing.T) {
+	base := t.TempDir()
+	first, err := ensure(base, testContent(), time.Now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := ensure(base, testContent(), time.Now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if second.URL != first.URL || second.Fingerprint != first.Fingerprint {
+		t.Fatalf("manual was not reused: %#v vs %#v", first, second)
+	}
+}
+
+func TestEnsureReusesExistingManualWhenLocked(t *testing.T) {
+	base := t.TempDir()
+	first, err := ensure(base, testContent(), time.Now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lock, err := os.OpenFile(filepath.Join(base, "manual", ".lock"), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lock.Close()
+	second, err := ensure(base, testContent(), time.Now)
+	if err != nil || second.URL != first.URL {
+		t.Fatalf("valid manual must be reused while locked: %#v %v", second, err)
+	}
+}
+
+func TestEnsureReturnsErrorWhenLockedWithoutCurrent(t *testing.T) {
+	old := lockWait
+	lockWait = 20 * time.Millisecond
+	defer func() { lockWait = old }()
+
+	base := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(base, "manual"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	lock, err := os.OpenFile(filepath.Join(base, "manual", ".lock"), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lock.Close()
+	if _, err := ensure(base, testContent(), time.Now); err == nil {
+		t.Fatal("expected lock timeout error")
+	}
+}
+
+func TestEnsureRemovesStaleLock(t *testing.T) {
+	old := lockStale
+	lockStale = time.Millisecond
+	defer func() { lockStale = old }()
+
+	base := t.TempDir()
+	manualDir := filepath.Join(base, "manual")
+	if err := os.MkdirAll(manualDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	lockPath := filepath.Join(manualDir, ".lock")
+	if err := os.WriteFile(lockPath, nil, 0644); err != nil {
+		t.Fatal(err)
+	}
+	oldTime := time.Now().Add(-time.Hour)
+	if err := os.Chtimes(lockPath, oldTime, oldTime); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ensure(base, testContent(), time.Now); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestEnsurePrunesOldVersions(t *testing.T) {
+	old := pruneAge
+	pruneAge = 0
+	defer func() { pruneAge = old }()
+
+	base := t.TempDir()
+	if _, err := ensure(base, testContent(), time.Now); err != nil {
+		t.Fatal(err)
+	}
+	manualDir := filepath.Join(base, "manual")
+	oldSrc := filepath.Join(manualDir, "src-old")
+	oldCache := filepath.Join(manualDir, "cache", "old-root")
+	for _, dir := range []string{oldSrc, oldCache} {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	past := time.Now().Add(-time.Hour)
+	for _, dir := range []string{oldSrc, oldCache} {
+		if err := os.Chtimes(dir, past, past); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.Remove(filepath.Join(manualDir, "current.json")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ensure(base, testContent(), time.Now); err != nil {
+		t.Fatal(err)
+	}
+	for _, dir := range []string{oldSrc, oldCache} {
+		if _, err := os.Stat(dir); !os.IsNotExist(err) {
+			t.Fatalf("%s was not pruned", dir)
+		}
 	}
 }
