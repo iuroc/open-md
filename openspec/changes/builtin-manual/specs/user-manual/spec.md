@@ -78,6 +78,20 @@
 - **THEN** 每个文档都正常打开
 - **AND** 手册已完整生成时显示入口，未完成时隐藏入口，页面不会指向缺章的半成品手册
 
+### Requirement: Manual follows the executable build
+
+手册站点 SHALL 与当前可执行文件的版本和构建时间绑定。覆盖安装或运行新的构建后，手册页面 MUST 重新生成并显示当前的版本和构建时间，即使章节内容没有变化。
+
+#### Scenario: Reinstall a new build
+
+- **WHEN** 用户覆盖安装一个版本或构建时间不同的 OpenMD，然后打开任意文档和手册
+- **THEN** 手册「关于」显示当前可执行文件的版本和构建时间
+
+#### Scenario: Unchanged build
+
+- **WHEN** 用户再次打开文档，且可执行文件和手册内容都没有变化
+- **THEN** 手册页面直接复用，不重复渲染
+
 ### Requirement: Manual content is original with attributed further reading
 
 手册正文 SHALL 为原创内容。引用外部教程时 MUST 只使用链接并标注出处，MUST NOT 直接摘录受许可证约束的第三方原文。

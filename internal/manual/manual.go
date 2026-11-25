@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"openmd/internal/buildinfo"
 	"openmd/internal/render"
 )
 
@@ -97,6 +98,14 @@ type Result struct {
 type currentManual struct {
 	Fingerprint string `json:"fingerprint"`
 	InitialPage string `json:"initialPage"`
+	Build       string `json:"build"`
+}
+
+// buildSignature ties cached manual pages to the executable that rendered
+// them. The manual shows the version and build time, so reinstalling a new
+// build must regenerate the pages even when the chapter content is unchanged.
+func buildSignature() string {
+	return buildinfo.VersionLabel() + "|" + buildinfo.BuildTime
 }
 
 var (
@@ -119,6 +128,7 @@ func ensure(baseDir string, fsys fs.FS, now func() time.Time) (Result, error) {
 	if err != nil {
 		return Result{}, err
 	}
+	build := buildSignature()
 	baseDir, err = filepath.Abs(baseDir)
 	if err != nil {
 		return Result{}, err
@@ -127,20 +137,20 @@ func ensure(baseDir string, fsys fs.FS, now func() time.Time) (Result, error) {
 	if err := os.MkdirAll(manualDir, 0755); err != nil {
 		return Result{}, err
 	}
-	if res, ok := currentResult(manualDir, fp); ok {
+	if res, ok := currentResult(manualDir, fp, build); ok {
 		return res, nil
 	}
 
 	release, err := acquireLock(filepath.Join(manualDir, ".lock"), now)
 	if err != nil {
-		if res, ok := currentResult(manualDir, fp); ok {
+		if res, ok := currentResult(manualDir, fp, build); ok {
 			return res, nil
 		}
 		return Result{}, err
 	}
 	defer release()
 
-	if res, ok := currentResult(manualDir, fp); ok {
+	if res, ok := currentResult(manualDir, fp, build); ok {
 		return res, nil
 	}
 
@@ -150,22 +160,22 @@ func ensure(baseDir string, fsys fs.FS, now func() time.Time) (Result, error) {
 	}
 	site, err := render.BuildDirSite(srcDir, render.SiteOptions{
 		CacheBase:  filepath.Join(manualDir, "cache"),
-		Version:    "manual",
+		Version:    "manual:" + build,
 		AllowCache: true,
 	})
 	if err != nil {
 		return Result{}, err
 	}
-	if err := writeCurrent(manualDir, currentManual{Fingerprint: fp, InitialPage: site.InitialPage}); err != nil {
+	if err := writeCurrent(manualDir, currentManual{Fingerprint: fp, InitialPage: site.InitialPage, Build: build}); err != nil {
 		return Result{}, err
 	}
 	prune(manualDir, srcDir, filepath.Dir(site.InitialPage), now())
 	return Result{URL: render.FileURL(site.InitialPage), Fingerprint: fp}, nil
 }
 
-func currentResult(manualDir, fp string) (Result, bool) {
+func currentResult(manualDir, fp, build string) (Result, bool) {
 	cur, ok := readCurrent(manualDir)
-	if !ok || cur.Fingerprint != fp || !filepath.IsAbs(cur.InitialPage) || !fileExists(cur.InitialPage) {
+	if !ok || cur.Fingerprint != fp || cur.Build != build || !filepath.IsAbs(cur.InitialPage) || !fileExists(cur.InitialPage) {
 		return Result{}, false
 	}
 	return Result{URL: render.FileURL(cur.InitialPage), Fingerprint: fp}, true

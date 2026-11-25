@@ -27,6 +27,11 @@
 - [x] 5.1 更新 README 的能力说明和 AGENTS 的手册缓存布局。
 - [x] 5.2 运行 `go vet ./...`、`go test ./... -count=1`，用真实页面验证「关于 → 打开使用手册」、章节跳转、源码/双视图和入口隐藏。
 
+## 6. 覆盖安装后刷新手册
+
+- [x] 6.1 在 `current.json` 和 `BuildDirSite` 的版本中加入 `buildinfo.VersionLabel()` + `BuildTime`：覆盖安装新 exe 后，即使章节内容未变也重新生成手册页面；新增 `TestEnsureRebuildsWhenBuildInfoChanges`。
+- [x] 6.2 用两个不同的 `Version` / `BuildTime` 连续调用 `manual.Ensure`，确认同一页面路径被重写；运行 `go test ./...` 通过。
+
 ## 验证记录
 
 - `gofmt -w internal/manual internal/app internal/render`、`go vet ./...`、`go test ./... -count=1` 全部通过。
@@ -39,3 +44,4 @@
   - `ManualURL` 为空的文档页面不显示手册入口。
 - 验证过程中发现并修复：`manual.Ensure` 在相对 `baseDir` 下会写出相对首页路径；现在统一转成绝对路径，并拒绝/重建旧的相对 `current.json` 标记，新增对应测试。
 - 侧栏文件树按文件名显示章节（例如 `02-headings-paragraphs.md`），章节的中文标题显示在页面 H1 和手册目录中。
+- 覆盖安装场景：同一缓存目录先后以 `2026.11.25-1000 / 10:00` 和 `2026.11.25-1100 / 11:00` 运行 `manual.Ensure`，第二次重写了同一手册页面，「关于」里的构建时间从 10:00 变为 11:00。

@@ -1,12 +1,15 @@
 package manual
 
 import (
+	"html"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"testing/fstest"
 	"time"
+
+	"openmd/internal/buildinfo"
 )
 
 func TestFingerprintChangesWithContent(t *testing.T) {
@@ -143,6 +146,52 @@ func TestEnsureHealsRelativeCurrentMarker(t *testing.T) {
 	cur, ok = readCurrent(manualDir)
 	if !ok || !filepath.IsAbs(cur.InitialPage) {
 		t.Fatalf("relative marker was not healed: %#v", cur)
+	}
+}
+
+func TestEnsureRebuildsWhenBuildInfoChanges(t *testing.T) {
+	oldVersion, oldTime := buildinfo.Version, buildinfo.BuildTime
+	t.Cleanup(func() {
+		buildinfo.Version = oldVersion
+		buildinfo.BuildTime = oldTime
+	})
+
+	base := t.TempDir()
+	buildinfo.Version = "2026.11.25-1000"
+	buildinfo.BuildTime = "2026-11-25T10:00:00Z"
+	firstDisplay := buildinfo.BuildTimeDisplay()
+	if _, err := ensure(base, testContent(), time.Now); err != nil {
+		t.Fatal(err)
+	}
+	cur, ok := readCurrent(filepath.Join(base, "manual"))
+	if !ok {
+		t.Fatal("current marker missing")
+	}
+	page, err := os.ReadFile(cur.InitialPage)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(html.UnescapeString(string(page)), firstDisplay) {
+		t.Fatalf("first manual page missing build time %q", firstDisplay)
+	}
+
+	buildinfo.Version = "2026.11.25-1100"
+	buildinfo.BuildTime = "2026-11-25T11:00:00Z"
+	secondDisplay := buildinfo.BuildTimeDisplay()
+	if _, err := ensure(base, testContent(), time.Now); err != nil {
+		t.Fatal(err)
+	}
+	cur, ok = readCurrent(filepath.Join(base, "manual"))
+	if !ok {
+		t.Fatal("current marker missing after rebuild")
+	}
+	page, err = os.ReadFile(cur.InitialPage)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pageText := html.UnescapeString(string(page))
+	if strings.Contains(pageText, firstDisplay) || !strings.Contains(pageText, secondDisplay) {
+		t.Fatalf("manual was not rebuilt for new build info: %q", pageText)
 	}
 }
 

@@ -55,7 +55,9 @@
 - `src-<指纹>` 下写入 `.complete` 标记；只有标记存在且手册首页可读时才跳过提取，否则重新提取。
 - 生成成功后清理 `<baseDir>/manual/src-*` 和 `cache/*`，但只删除**非当前版本且超过 24 小时未修改**的目录，避免删掉其他进程正在阅读的版本；清理失败只忽略。
 
-不使用 `cacheGeneration` 之外的额外版本号：模板或共享资源变化时按既有约定提升 `cacheGeneration`，`BuildDirSite` 的 manifest 会使旧页面失效并重建。
+手册页面会显示 exe 的版本和构建时间，因此 `current.json` 还记录 `build` 签名（`VersionLabel()` + `BuildTime`），`BuildDirSite` 的版本也包含该签名。覆盖安装新 exe 后签名变化，即使章节内容不变，手册页面也会重建。
+
+`cacheGeneration` 继续负责模板和共享资源变化；构建签名负责 exe 版本和构建时间变化。
 
 ### 4. 多进程同时打开时串行生成
 
